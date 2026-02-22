@@ -5,163 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>₱ PesoTracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
-<style>
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: var(--bg);
-    padding: 20px;
-  }
-
-  .loader-wrap {
-    width: 100%;
-    max-width: 420px;
-    animation: fadeUp 0.5s ease both;
-  }
-
-  .loader-logo {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-
-  .loader-logo .big-logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 2.8rem;
-    color: var(--accent);
-    letter-spacing: -1px;
-    line-height: 1;
-  }
-
-  .loader-logo .big-sub {
-    font-size: 0.85rem;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-top: 6px;
-  }
-
-  .loader-card {
-    background: var(--card);
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 36px;
-    box-shadow: var(--shadow2);
-  }
-
-  .loader-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 1.3rem;
-    margin-bottom: 8px;
-  }
-
-  .loader-sub {
-    color: var(--text2);
-    font-size: 0.875rem;
-    margin-bottom: 32px;
-    line-height: 1.5;
-  }
-
-  .loader-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .loader-btn {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 18px 20px;
-    border-radius: var(--radius2);
-    border: 1.5px solid var(--border2);
-    background: var(--bg3);
-    color: var(--text);
-    text-align: left;
-    transition: all var(--transition);
-    cursor: pointer;
-    width: 100%;
-  }
-
-  .loader-btn:hover {
-    border-color: var(--accent);
-    background: #00F5C410;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px #00F5C420;
-  }
-
-  .loader-btn:active { transform: scale(0.98); }
-
-  .loader-btn-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: #00F5C420;
-    color: var(--accent);
-  }
-
-  .loader-btn.fresh .loader-btn-icon {
-    background: #7c3aed20;
-    color: var(--accent3);
-  }
-
-  .loader-btn-text strong {
-    display: block;
-    font-weight: 700;
-    font-size: 0.95rem;
-    margin-bottom: 2px;
-  }
-
-  .loader-btn-text span {
-    font-size: 0.78rem;
-    color: var(--text2);
-  }
-
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text3);
-    font-size: 0.78rem;
-  }
-
-  .divider::before, .divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* Hidden file input */
-  #json-file-input { display: none; }
-
-  /* Drag over state */
-  .loader-btn.dragover {
-    border-color: var(--accent);
-    background: #00F5C418;
-  }
-
-  .existing-data-notice {
-    margin-top: 24px;
-    padding: 14px 16px;
-    background: #00F5C410;
-    border: 1px solid #00F5C430;
-    border-radius: var(--radius2);
-    font-size: 0.8rem;
-    color: var(--accent);
-    text-align: center;
-    display: none;
-  }
-</style>
 </head>
-<body>
+<body class="start-body">
 
 <div class="loader-wrap">
   <div class="loader-logo">
@@ -174,7 +19,6 @@
     <div class="loader-sub">Load mo ang iyong existing data o magsimula ng bago.</div>
 
     <div class="loader-options">
-      <!-- Load JSON -->
       <button class="loader-btn" id="load-btn">
         <div class="loader-btn-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -185,9 +29,8 @@
         </div>
       </button>
 
-      <div class="divider">o</div>
+      <div class="start-divider">o</div>
 
-      <!-- Start fresh -->
       <button class="loader-btn fresh" id="fresh-btn">
         <div class="loader-btn-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -213,7 +56,6 @@
 <script src="js/ui.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if may existing data
   const existing = loadData();
   const hasData = existing.wallets.length > 0 || existing.transactions.length > 0;
   if (hasData) {
@@ -221,70 +63,48 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#fresh-btn .loader-btn-text span').textContent = 'I-continue ang existing data sa device na ito';
   }
 
-  // Load JSON button
   document.getElementById('load-btn').addEventListener('click', () => {
     document.getElementById('json-file-input').click();
   });
 
-  // File selected
-  document.getElementById('json-file-input').addEventListener('change', e => {
-    const file = e.target.files[0];
+  function loadJsonFile(file) {
     if (!file) return;
-    if (!file.name.endsWith('.json')) {
-      showToast('JSON file lang ang accepted!', 'error');
-      return;
-    }
-
+    if (!file.name.endsWith('.json')) { showToast('JSON file lang ang accepted!', 'error'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-
-        // Validate structure
         if (!parsed.wallets && !parsed.transactions && !parsed.goals) {
           showToast('Invalid file — hindi ito PesoTracker data', 'error');
           return;
         }
-
-        // Save to localStorage
         localStorage.setItem('moneyTrackerData', JSON.stringify(parsed));
         showToast('Data loaded! Redirecting...', 'success');
-        setTimeout(() => { sessionStorage.setItem('pesotracker_session', '1'); window.location.href = 'index.html'; }, 1000);
-      } catch {
-        showToast('Error reading file. Siguraduhing valid JSON ito.', 'error');
-      }
+        setTimeout(() => {
+          sessionStorage.setItem('pesotracker_session', '1');
+          window.location.href = 'index.html';
+        }, 1000);
+      } catch { showToast('Error reading file. Siguraduhing valid JSON ito.', 'error'); }
     };
     reader.readAsText(file);
-  });
+  }
 
-  // Start fresh / continue
+  document.getElementById('json-file-input').addEventListener('change', e => loadJsonFile(e.target.files[0]));
+
   document.getElementById('fresh-btn').addEventListener('click', () => {
     sessionStorage.setItem('pesotracker_session', '1');
     window.location.href = 'index.html';
   });
 
-  // Drag and drop support
   const loadBtn = document.getElementById('load-btn');
   loadBtn.addEventListener('dragover', e => { e.preventDefault(); loadBtn.classList.add('dragover'); });
   loadBtn.addEventListener('dragleave', () => loadBtn.classList.remove('dragover'));
   loadBtn.addEventListener('drop', e => {
     e.preventDefault();
     loadBtn.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.name.endsWith('.json')) { showToast('JSON file lang!', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!parsed.wallets && !parsed.transactions && !parsed.goals) { showToast('Invalid PesoTracker file', 'error'); return; }
-        localStorage.setItem('moneyTrackerData', JSON.stringify(parsed));
-        showToast('Data loaded! Redirecting...', 'success');
-        setTimeout(() => { sessionStorage.setItem('pesotracker_session', '1'); window.location.href = 'index.html'; }, 1000);
-      } catch { showToast('Error reading file.', 'error'); }
-    };
-    reader.readAsText(file);
+    loadJsonFile(e.dataTransfer.files[0]);
   });
 });
 </script>
 </body>
-</html>
+</html>F
