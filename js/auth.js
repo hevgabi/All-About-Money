@@ -13,9 +13,13 @@
     return PUBLIC_PAGES.some(pp => p === pp || p === pp + '.html');
   }
 
+  // Wait until firebase.js has registered fbOnAuthChanged
   function waitForFb(cb, tries = 0) {
     if (window.fbOnAuthChanged) { cb(); return; }
-    if (tries > 40) { console.error('firebase.js not loaded'); return; }
+    if (tries > 100) { // ✅ 5 seconds max wait
+      console.error('[auth.js] firebase.js not loaded in time');
+      return;
+    }
     setTimeout(() => waitForFb(cb, tries + 1), 50);
   }
 
@@ -31,8 +35,13 @@
       }
 
       if (user) {
+        // ✅ Store user ID globally so firebase.js path helpers can reliably use it
+        window._currentUserId = user.uid;
+        console.log('[auth.js] User authenticated:', user.uid);
+
         injectUserPanel(user);
-        // ✅ Signal to page JS that auth is ready — render can now safely run
+
+        // Signal to page JS that auth + user ID are ready
         if (typeof window.onAuthReady === 'function') {
           window.onAuthReady(user);
         }
@@ -72,6 +81,7 @@
   }
 
   window.handleLogout = function () {
+    window._currentUserId = null;
     if (!window.showConfirm) { window.fbLogout().then(() => location.href = 'login.html'); return; }
     showConfirm('Sign out ng iyong account?', 'Sign Out', 'Yes, Sign Out').then(ok => {
       if (!ok) return;

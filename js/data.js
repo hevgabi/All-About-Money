@@ -6,12 +6,12 @@ function uid()      { return Date.now().toString(36) + Math.random().toString(36
 function now()      { return new Date().toISOString(); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
-function _fb()  { return window._fb; }   // set by firebase.js
-function _col(name)   { return _fb().userCol(name); }
-function _doc(name, id) { return _fb().userDoc(name, id); }
+function _getApi() { return window._fb; }   // set by firebase.js
+function _col(name)   { return _getApi().userCol(name); }
+function _doc(name, id) { return _getApi().userDoc(name, id); }
 
 async function _getAll(colName) {
-  return _fb().colToArray(colName);
+  return _getApi().colToArray(colName);
 }
 
 // ── Wallets ───────────────────────────────────────────────────
@@ -20,23 +20,23 @@ async function getWallets() {
 }
 
 async function getWallet(id) {
-  const snap = await _fb().getDoc(_doc('wallets', id));
+  const snap = await _getApi().getDoc(_doc('wallets', id));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 async function addWallet({ name, balance }) {
   const id = uid();
   const wallet = { name: name.trim(), balance: Number(balance) || 0, createdAt: now() };
-  await _fb().setDoc(_doc('wallets', id), wallet);
+  await _getApi().setDoc(_doc('wallets', id), wallet);
   return { id, ...wallet };
 }
 
 async function updateWallet(id, { name }) {
-  await _fb().updateDoc(_doc('wallets', id), { name: name.trim() });
+  await _getApi().updateDoc(_doc('wallets', id), { name: name.trim() });
 }
 
 async function deleteWallet(id) {
-  const batch = _fb().writeBatch(_fb().db);
+  const batch = _getApi().writeBatch(_getApi().db);
   batch.delete(_doc('wallets', id));
 
   // Remove related transactions
@@ -55,7 +55,7 @@ async function deleteWallet(id) {
 async function adjustWalletBalance(id, delta) {
   const w = await getWallet(id);
   if (!w) return;
-  await _fb().updateDoc(_doc('wallets', id), { balance: w.balance + delta });
+  await _getApi().updateDoc(_doc('wallets', id), { balance: w.balance + delta });
 }
 
 // ── Transactions ──────────────────────────────────────────────
@@ -68,7 +68,7 @@ async function addTransaction({ dateISO, walletId, amount, place, type }) {
   const id = uid();
   const tx = { dateISO, walletId, amount, place: place.trim(), type, createdAt: now() };
 
-  const batch = _fb().writeBatch(_fb().db);
+  const batch = _getApi().writeBatch(_getApi().db);
   batch.set(_doc('transactions', id), tx);
 
   const w = await getWallet(walletId);
@@ -79,11 +79,11 @@ async function addTransaction({ dateISO, walletId, amount, place, type }) {
 }
 
 async function updateTransaction(id, updates) {
-  const snap = await _fb().getDoc(_doc('transactions', id));
+  const snap = await _getApi().getDoc(_doc('transactions', id));
   if (!snap.exists()) return null;
   const old = { id, ...snap.data() };
 
-  const batch = _fb().writeBatch(_fb().db);
+  const batch = _getApi().writeBatch(_getApi().db);
 
   // Revert old wallet effect
   const oldW = await getWallet(old.walletId);
@@ -106,11 +106,11 @@ async function updateTransaction(id, updates) {
 }
 
 async function deleteTransaction(id) {
-  const snap = await _fb().getDoc(_doc('transactions', id));
+  const snap = await _getApi().getDoc(_doc('transactions', id));
   if (!snap.exists()) return;
   const tx = snap.data();
 
-  const batch = _fb().writeBatch(_fb().db);
+  const batch = _getApi().writeBatch(_getApi().db);
   batch.delete(_doc('transactions', id));
 
   const w = await getWallet(tx.walletId);
@@ -129,12 +129,12 @@ async function getWants() {
 async function addWant({ name, price, priority, notes }) {
   const id = uid();
   const want = { name: name.trim(), price: Number(price), priority: Number(priority), notes: (notes || '').trim(), createdAt: now() };
-  await _fb().setDoc(_doc('wants', id), want);
+  await _getApi().setDoc(_doc('wants', id), want);
   return { id, ...want };
 }
 
 async function updateWant(id, updates) {
-  const snap = await _fb().getDoc(_doc('wants', id));
+  const snap = await _getApi().getDoc(_doc('wants', id));
   if (!snap.exists()) return null;
   const old = snap.data();
   const merged = {
@@ -142,12 +142,12 @@ async function updateWant(id, updates) {
     price:    Number(updates.price    ?? old.price),
     priority: Number(updates.priority ?? old.priority)
   };
-  await _fb().setDoc(_doc('wants', id), merged);
+  await _getApi().setDoc(_doc('wants', id), merged);
   return { id, ...merged };
 }
 
 async function deleteWant(id) {
-  await _fb().deleteDoc(_doc('wants', id));
+  await _getApi().deleteDoc(_doc('wants', id));
 }
 
 // ── Budgets ───────────────────────────────────────────────────
@@ -157,13 +157,13 @@ const DEFAULT_BUDGETS = {
 };
 
 async function getBudgets() {
-  const snap = await _fb().getDoc(_fb().budgetDocRef());
+  const snap = await _getApi().getDoc(_getApi().budgetDocRef());
   return snap.exists() ? snap.data() : { ...DEFAULT_BUDGETS };
 }
 
 async function saveWeeklyBudget(allowanceAmount, fixedExpenses) {
   const budgets = await getBudgets();
-  await _fb().setDoc(_fb().budgetDocRef(), {
+  await _getApi().setDoc(_getApi().budgetDocRef(), {
     ...budgets,
     weekly: { allowanceAmount: Number(allowanceAmount), fixedExpenses, createdAt: budgets.weekly?.createdAt || now() }
   });
@@ -171,7 +171,7 @@ async function saveWeeklyBudget(allowanceAmount, fixedExpenses) {
 
 async function saveMonthlyBudget(fixedExpenses) {
   const budgets = await getBudgets();
-  await _fb().setDoc(_fb().budgetDocRef(), {
+  await _getApi().setDoc(_getApi().budgetDocRef(), {
     ...budgets,
     monthly: { fixedExpenses, createdAt: budgets.monthly?.createdAt || now() }
   });
@@ -185,12 +185,12 @@ async function getGoals() {
 async function addGoal({ name, targetAmount, fundingWalletId }) {
   const id = uid();
   const goal = { name: name.trim(), targetAmount: Number(targetAmount), fundingWalletId, savedAmount: 0, createdAt: now() };
-  await _fb().setDoc(_doc('goals', id), goal);
+  await _getApi().setDoc(_doc('goals', id), goal);
   return { id, ...goal };
 }
 
 async function contributeToGoal(goalId, amount) {
-  const gSnap = await _fb().getDoc(_doc('goals', goalId));
+  const gSnap = await _getApi().getDoc(_doc('goals', goalId));
   if (!gSnap.exists()) return { error: 'Goal not found' };
   const goal = { id: goalId, ...gSnap.data() };
 
@@ -204,7 +204,7 @@ async function contributeToGoal(goalId, amount) {
   const remaining = goal.targetAmount - goal.savedAmount;
   if (amount > remaining) amount = remaining;
 
-  const batch = _fb().writeBatch(_fb().db);
+  const batch = _getApi().writeBatch(_getApi().db);
   batch.update(_doc('goals', goalId), { savedAmount: goal.savedAmount + amount });
   batch.update(_doc('wallets', wallet.id), { balance: wallet.balance - amount });
 
@@ -219,13 +219,13 @@ async function contributeToGoal(goalId, amount) {
 }
 
 async function deleteGoal(id) {
-  await _fb().deleteDoc(_doc('goals', id));
+  await _getApi().deleteDoc(_doc('goals', id));
 }
 
 async function updateGoal(id, updates) {
-  const snap = await _fb().getDoc(_doc('goals', id));
+  const snap = await _getApi().getDoc(_doc('goals', id));
   if (!snap.exists()) return null;
   const merged = { ...snap.data(), ...updates };
-  await _fb().setDoc(_doc('goals', id), merged);
+  await _getApi().setDoc(_doc('goals', id), merged);
   return { id, ...merged };
 }

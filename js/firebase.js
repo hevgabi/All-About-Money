@@ -29,20 +29,21 @@ window.fbOnAuthChanged   = (cb) => onAuthStateChanged(auth, cb);
 // ── Firestore path helpers (per-user) ────────────────────────
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+// ✅ Use window._currentUserId (set by auth.js) as primary, auth.currentUser as fallback
+function getCurrentUserId() {
+  const userId = window._currentUserId || auth.currentUser?.uid;
+  if (!userId) throw new Error('Not logged in — no user ID available');
+  return userId;
+}
+
 function userCol(colName) {
-  const userId = auth.currentUser?.uid;
-  if (!userId) throw new Error('Not logged in');
-  return collection(db, 'users', userId, colName);
+  return collection(db, 'users', getCurrentUserId(), colName);
 }
 function userDoc(colName, id) {
-  const userId = auth.currentUser?.uid;
-  if (!userId) throw new Error('Not logged in');
-  return doc(db, 'users', userId, colName, id);
+  return doc(db, 'users', getCurrentUserId(), colName, id);
 }
 function budgetDocRef() {
-  const userId = auth.currentUser?.uid;
-  if (!userId) throw new Error('Not logged in');
-  return doc(db, 'users', userId, 'meta', 'budgets');
+  return doc(db, 'users', getCurrentUserId(), 'meta', 'budgets');
 }
 async function colToArray(colName) {
   const snap = await getDocs(userCol(colName));
@@ -56,4 +57,4 @@ window._fb = {
   auth
 };
 
-console.log('[firebase.js] loaded');
+console.log('[firebase.js] loaded ✅');
