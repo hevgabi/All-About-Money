@@ -1,22 +1,17 @@
-// js/reports.js — Firebase version
-import { requireAuth } from './auth-guard.js';
-import { getTransactions, getWallets } from './data.js';
-import { formatMoney, formatDate, escapeHtml, getWeekRange, getMonthRange, isInRange, todayISO } from './utils.js';
-
+// js/reports.js
 function switchTab(tab) {
   document.getElementById('tab-weekly').classList.toggle('active', tab === 'weekly');
   document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
-  document.getElementById('weekly-report').style.display = tab === 'weekly' ? '' : 'none';
+  document.getElementById('weekly-report').style.display  = tab === 'weekly'  ? '' : 'none';
   document.getElementById('monthly-report').style.display = tab === 'monthly' ? '' : 'none';
 }
-window.switchTab = switchTab;
 
 async function renderWeeklyReport() {
   const refDate = document.getElementById('week-ref-date').value || todayISO();
-  const range = getWeekRange(refDate);
+  const range   = getWeekRange(refDate);
   const [allTxns, wallets] = await Promise.all([getTransactions(), getWallets()]);
-  const txns = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
-  const walletMap = Object.fromEntries(wallets.map(w => [w.id, w.name]));
+  const txns     = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
+  const walletMap= Object.fromEntries(wallets.map(w => [w.id, w.name]));
 
   document.getElementById('weekly-range-label').textContent = `Week: ${formatDate(range.start)} – ${formatDate(range.end)}`;
 
@@ -32,7 +27,7 @@ async function renderWeeklyReport() {
   document.getElementById('weekly-stats').innerHTML = `
     <div class="report-card"><div class="card-label">Total Expenses</div><div class="report-card-val negative">${formatMoney(totalExp)}</div></div>
     <div class="report-card"><div class="card-label">Total Income</div><div class="report-card-val positive">${formatMoney(totalInc)}</div></div>
-    <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net >= 0 ? 'positive' : 'negative'}">${formatMoney(net)}</div></div>
+    <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net>=0?'positive':'negative'}">${formatMoney(net)}</div></div>
     <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.length}</div></div>
   `;
 
@@ -47,20 +42,16 @@ async function renderWeeklyReport() {
   `).join('');
 
   document.getElementById('weekly-breakdown').innerHTML = Object.keys(byWallet).length ? `
-    <div class="card" style="margin-top:16px">
-      <div class="section-title">By Wallet</div>
-      ${breakdownHtml}
-    </div>
+    <div class="card" style="margin-top:16px"><div class="section-title">By Wallet</div>${breakdownHtml}</div>
   ` : '';
 }
-window.renderWeeklyReport = renderWeeklyReport;
 
 async function renderMonthlyReport() {
   const month = parseInt(document.getElementById('month-select').value);
-  const year = parseInt(document.getElementById('year-select').value);
+  const year  = parseInt(document.getElementById('year-select').value);
   const range = getMonthRange(year, month);
   const allTxns = await getTransactions();
-  const txns = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
+  const txns  = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
 
   let totalExp = 0, totalInc = 0;
   const byDay = {};
@@ -74,12 +65,12 @@ async function renderMonthlyReport() {
   document.getElementById('monthly-stats').innerHTML = `
     <div class="report-card"><div class="card-label">Total Expenses</div><div class="report-card-val negative">${formatMoney(totalExp)}</div></div>
     <div class="report-card"><div class="card-label">Total Income</div><div class="report-card-val positive">${formatMoney(totalInc)}</div></div>
-    <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net >= 0 ? 'positive' : 'negative'}">${formatMoney(net)}</div></div>
+    <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net>=0?'positive':'negative'}">${formatMoney(net)}</div></div>
     <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.length}</div></div>
   `;
 
   const sortedDays = Object.keys(byDay).sort().reverse();
-  const dailyHtml = sortedDays.map(day => `
+  const dailyHtml  = sortedDays.map(day => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--border)">
       <span style="color:var(--text2);font-size:0.875rem">${formatDate(day)}</span>
       <span>
@@ -89,25 +80,21 @@ async function renderMonthlyReport() {
     </div>
   `).join('');
 
-  document.getElementById('monthly-breakdown').innerHTML = sortedDays.length ? `
-    <div class="card" style="margin-top:16px">
-      <div class="section-title">Daily Breakdown</div>
-      ${dailyHtml}
-    </div>
-  ` : `<div class="empty-state"><p>No transactions for this month.</p></div>`;
+  document.getElementById('monthly-breakdown').innerHTML = sortedDays.length
+    ? `<div class="card" style="margin-top:16px"><div class="section-title">Daily Breakdown</div>${dailyHtml}</div>`
+    : `<div class="empty-state"><p>No transactions for this month.</p></div>`;
 }
-window.renderMonthlyReport = renderMonthlyReport;
 
-requireAuth(async () => {
+document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
   document.getElementById('week-ref-date').value = todayISO();
-  document.getElementById('year-select').value = now.getFullYear();
+  document.getElementById('year-select').value   = now.getFullYear();
 
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('month-select').innerHTML = months.map((m, i) =>
     `<option value="${i+1}" ${i+1 === now.getMonth()+1 ? 'selected' : ''}>${m}</option>`
   ).join('');
 
-  await renderWeeklyReport();
-  await renderMonthlyReport();
+  renderWeeklyReport();
+  renderMonthlyReport();
 });

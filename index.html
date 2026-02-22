@@ -132,28 +132,11 @@
 
 <div id="toast-container"></div>
 
-<script>
-  // Redirect to start.html if NOT coming from within the app
-  // performance.navigation.type === 1 means page reload
-  // document.referrer check means came from another page in the app
-  const fromApp = document.referrer && (
-    document.referrer.includes('start.html') ||
-    document.referrer.includes('wallets.html') ||
-    document.referrer.includes('transactions.html') ||
-    document.referrer.includes('reports.html') ||
-    document.referrer.includes('wants.html') ||
-    document.referrer.includes('budget.html') ||
-    document.referrer.includes('goals.html') ||
-    document.referrer.includes('index.html')
-  );
-  const isReload = performance.navigation
-    ? performance.navigation.type === 1
-    : performance.getEntriesByType('navigation')[0]?.type === 'reload';
-
-  if (!fromApp && !isReload) {
-    window.location.replace('start.html');
-  }
-</script>
-<script type="module" src="js/dashboard.js"></script>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dashboard.js"></script>
+<script type="module" src="js/firebase.js"></script>
+<script src="js/auth.js"></script>
 </body>
 </html>

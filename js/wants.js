@@ -1,16 +1,11 @@
-// js/wants.js — Firebase version
-import { requireAuth } from './auth-guard.js';
-import { getWants, getWallets, getWallet, addWant, updateWant, deleteWant, addTransaction, todayISO } from './data.js';
-import { formatMoney, formatDate, escapeHtml } from './utils.js';
-import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
-
-let cachedWants = [];
+// js/wants.js
+let _cachedWants = [];
 
 async function renderWants() {
   const allWants = await getWants();
-  cachedWants = allWants;
+  _cachedWants   = allWants;
   const active = allWants.filter(w => !w.boughtAt).sort((a, b) => a.priority - b.priority || b.createdAt.localeCompare(a.createdAt));
-  const bought = allWants.filter(w => w.boughtAt).sort((a, b) => b.boughtAt.localeCompare(a.boughtAt));
+  const bought = allWants.filter(w =>  w.boughtAt).sort((a, b) => b.boughtAt.localeCompare(a.boughtAt));
 
   document.getElementById('wants-count').textContent = active.length ? `(${active.length})` : '';
   renderActiveWants(active);
@@ -23,8 +18,8 @@ function renderActiveWants(wants) {
     container.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><p>Wala pang wants. Magdagdag ng gusto mong bilhin!</p></div>`;
     return;
   }
-  const iconEdit = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  const iconDel = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
+  const iconEdit  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const iconDel   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
   const iconCheck = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>`;
 
   container.innerHTML = wants.map(w => `
@@ -36,9 +31,7 @@ function renderActiveWants(wants) {
       </div>
       <div class="want-price">${formatMoney(w.price)}</div>
       <div class="want-actions">
-        <button class="btn btn-sm buy-btn" data-id="${w.id}" title="Nabili na!" style="background:#00F5C422;color:var(--accent);border:1px solid #00F5C433;gap:5px">
-          ${iconCheck} Nabili
-        </button>
+        <button class="btn btn-sm buy-btn" data-id="${w.id}" title="Nabili na!" style="background:#00F5C422;color:var(--accent);border:1px solid #00F5C433;gap:5px">${iconCheck} Nabili</button>
         <button class="btn btn-icon btn-sm edit-want-btn" data-id="${w.id}" title="Edit">${iconEdit}</button>
         <button class="btn btn-icon btn-sm delete-want-btn" data-id="${w.id}" data-name="${escapeHtml(w.name)}" title="Delete" style="color:var(--danger)">${iconDel}</button>
       </div>
@@ -47,16 +40,15 @@ function renderActiveWants(wants) {
 }
 
 function renderBoughtWants(bought) {
-  const section = document.getElementById('bought-section');
-  const container = document.getElementById('bought-list');
-  const countEl = document.getElementById('bought-count');
+  const section  = document.getElementById('bought-section');
+  const container= document.getElementById('bought-list');
+  const countEl  = document.getElementById('bought-count');
 
   if (bought.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
-  countEl.textContent = `(${bought.length})`;
+  countEl.textContent   = `(${bought.length})`;
 
   const iconDel = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
-
   container.innerHTML = bought.map(w => `
     <div class="want-item" data-id="${w.id}" style="opacity:0.7;">
       <div class="want-priority" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#00F5C422;color:var(--accent);flex-shrink:0;">
@@ -79,12 +71,12 @@ function renderBoughtWants(bought) {
 }
 
 async function openBuyModal(wantId) {
-  const want = cachedWants.find(w => w.id === wantId);
+  const want    = _cachedWants.find(w => w.id === wantId);
   if (!want) return;
   const wallets = await getWallets();
 
-  document.getElementById('buy-want-id').value = wantId;
-  document.getElementById('buy-amount').value = want.price || '';
+  document.getElementById('buy-want-id').value  = wantId;
+  document.getElementById('buy-amount').value   = want.price || '';
   document.getElementById('buy-modal-info').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -100,35 +92,33 @@ async function openBuyModal(wantId) {
     ? wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} — ${formatMoney(w.balance)}</option>`).join('')
     : '<option value="">No wallets available</option>';
 
-  const updateInfo = async () => {
-    const wallet = await getWallet(walletSel.value);
-    document.getElementById('buy-wallet-balance').textContent = wallet ? `Available balance: ${formatMoney(wallet.balance)}` : '';
-  };
-  await updateInfo();
-  walletSel.onchange = updateInfo;
-
+  await updateBuyWalletInfo();
+  walletSel.onchange = updateBuyWalletInfo;
   openModal('buy-modal');
   setTimeout(() => document.getElementById('buy-amount').focus(), 120);
 }
 
-requireAuth(async () => {
-  await renderWants();
+async function updateBuyWalletInfo() {
+  const walletId = document.getElementById('buy-wallet').value;
+  const wallet   = await getWallet(walletId);
+  document.getElementById('buy-wallet-balance').textContent = wallet
+    ? `Available balance: ${formatMoney(wallet.balance)}` : '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderWants();
   setupModalClose('edit-want-modal');
   setupModalClose('buy-modal');
 
   document.getElementById('add-want-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('want-name');
-    if (!nameEl.value.trim()) {
-      nameEl.classList.add('error');
-      nameEl.addEventListener('input', () => nameEl.classList.remove('error'), { once: true });
-      return;
-    }
+    if (!nameEl.value.trim()) { nameEl.classList.add('error'); nameEl.addEventListener('input', () => nameEl.classList.remove('error'), { once: true }); return; }
     await addWant({
-      name: nameEl.value,
-      price: parseFloat(document.getElementById('want-price').value) || 0,
+      name:     nameEl.value,
+      price:    parseFloat(document.getElementById('want-price').value) || 0,
       priority: document.getElementById('want-priority').value,
-      notes: document.getElementById('want-notes').value
+      notes:    document.getElementById('want-notes').value
     });
     showToast('Want added!', 'success');
     e.target.reset();
@@ -137,20 +127,20 @@ requireAuth(async () => {
   });
 
   document.getElementById('wants-list').addEventListener('click', async e => {
-    const buyBtn = e.target.closest('.buy-btn');
+    const buyBtn  = e.target.closest('.buy-btn');
     const editBtn = e.target.closest('.edit-want-btn');
-    const delBtn = e.target.closest('.delete-want-btn');
+    const delBtn  = e.target.closest('.delete-want-btn');
 
-    if (buyBtn) await openBuyModal(buyBtn.dataset.id);
+    if (buyBtn)  await openBuyModal(buyBtn.dataset.id);
 
     if (editBtn) {
-      const want = cachedWants.find(w => w.id === editBtn.dataset.id);
+      const want = _cachedWants.find(w => w.id === editBtn.dataset.id);
       if (!want) return;
-      document.getElementById('edit-want-id').value = want.id;
-      document.getElementById('edit-want-name').value = want.name;
-      document.getElementById('edit-want-price').value = want.price;
+      document.getElementById('edit-want-id').value       = want.id;
+      document.getElementById('edit-want-name').value     = want.name;
+      document.getElementById('edit-want-price').value    = want.price;
       document.getElementById('edit-want-priority').value = want.priority;
-      document.getElementById('edit-want-notes').value = want.notes || '';
+      document.getElementById('edit-want-notes').value    = want.notes || '';
       openModal('edit-want-modal');
     }
 
@@ -165,28 +155,27 @@ requireAuth(async () => {
 
   document.getElementById('bought-list').addEventListener('click', async e => {
     const delBtn = e.target.closest('.delete-want-btn');
-    if (delBtn) {
-      const ok = await showConfirm(`Remove "${delBtn.dataset.name}" from history?`, 'Remove');
-      if (!ok) return;
-      await deleteWant(delBtn.dataset.id);
-      showToast('Removed from history', 'success');
-      await renderWants();
-    }
+    if (!delBtn) return;
+    const ok = await showConfirm(`Remove "${delBtn.dataset.name}" from history?`, 'Remove');
+    if (!ok) return;
+    await deleteWant(delBtn.dataset.id);
+    showToast('Removed from history', 'success');
+    await renderWants();
   });
 
   document.getElementById('buy-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const wantId = document.getElementById('buy-want-id').value;
+    const wantId   = document.getElementById('buy-want-id').value;
     const walletId = document.getElementById('buy-wallet').value;
-    const amount = parseFloat(document.getElementById('buy-amount').value);
-    const want = cachedWants.find(w => w.id === wantId);
+    const amount   = parseFloat(document.getElementById('buy-amount').value);
+    const want     = _cachedWants.find(w => w.id === wantId);
 
-    if (!walletId) { showToast('Select a wallet', 'error'); return; }
-    if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
-    if (!want) { showToast('Want not found', 'error'); return; }
+    if (!walletId)           { showToast('Select a wallet', 'error'); return; }
+    if (!amount || amount<=0){ showToast('Enter a valid amount', 'error'); return; }
+    if (!want)               { showToast('Want not found', 'error'); return; }
 
     const wallet = await getWallet(walletId);
-    if (!wallet) { showToast('Wallet not found', 'error'); return; }
+    if (!wallet)             { showToast('Wallet not found', 'error'); return; }
     if (amount > wallet.balance) { showToast(`Kulang ang balance! Available: ${formatMoney(wallet.balance)}`, 'error'); return; }
 
     await addTransaction({ dateISO: todayISO(), walletId, amount, place: `Bought: ${want.name}`, type: 'expense' });
@@ -202,10 +191,10 @@ requireAuth(async () => {
     const nameEl = document.getElementById('edit-want-name');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); return; }
     await updateWant(document.getElementById('edit-want-id').value, {
-      name: nameEl.value,
-      price: parseFloat(document.getElementById('edit-want-price').value) || 0,
+      name:     nameEl.value,
+      price:    parseFloat(document.getElementById('edit-want-price').value) || 0,
       priority: parseInt(document.getElementById('edit-want-priority').value),
-      notes: document.getElementById('edit-want-notes').value
+      notes:    document.getElementById('edit-want-notes').value
     });
     showToast('Want updated!', 'success');
     closeModal('edit-want-modal');

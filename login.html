@@ -3,119 +3,84 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>₱ PesoTracker — Login</title>
+<title>₱ PesoTracker — Sign In</title>
 <link rel="stylesheet" href="css/styles.css"/>
 <style>
-  .login-wrap {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg);
-  }
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
   .login-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px 40px;
-    text-align: center;
-    max-width: 360px;
-    width: 100%;
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:48px 40px; text-align:center; max-width:360px; width:100%;
   }
-  .login-logo {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-  .login-sub {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 36px;
-  }
-  .login-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-  .login-desc {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    margin-bottom: 28px;
-    line-height: 1.5;
-  }
+  .login-logo { font-size:2rem; font-weight:800; color:var(--accent); margin-bottom:4px; }
+  .login-sub  { color:var(--text-muted,var(--text2)); font-size:0.9rem; margin-bottom:36px; }
+  .login-title { font-size:1.15rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+  .login-desc  { color:var(--text2); font-size:0.875rem; margin-bottom:28px; line-height:1.55; }
   .google-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 100%;
-    padding: 14px 20px;
-    background: white;
-    color: #333;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: box-shadow 0.2s, transform 0.1s;
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    width:100%; padding:14px 20px; background:#fff; color:#333;
+    border:1px solid #ddd; border-radius:12px; font-size:0.95rem; font-weight:600;
+    cursor:pointer; transition:box-shadow .2s, transform .1s;
   }
-  .google-btn:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    transform: translateY(-1px);
-  }
-  .google-btn:active { transform: translateY(0); }
-  .google-btn svg { flex-shrink: 0; }
-  .login-note {
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    margin-top: 20px;
-  }
+  .google-btn:hover { box-shadow:0 4px 16px rgba(0,0,0,.13); transform:translateY(-1px); }
+  .google-btn:active { transform:translateY(0); }
+  .login-note { color:var(--text2); font-size:0.78rem; margin-top:20px; line-height:1.5; }
+  #login-error { color:var(--danger,#ff4d6d); font-size:0.85rem; margin-top:14px; display:none; }
 </style>
 </head>
 <body>
-<div class="login-wrap">
-  <div class="login-card">
-    <div class="login-logo">₱ PesoTracker</div>
-    <div class="login-sub">Personal Finance</div>
 
-    <div class="login-title">Kumusta! 👋</div>
-    <div class="login-desc">I-sign in mo ang iyong Google account para ma-access ang iyong data kahit saang device.</div>
+<div class="login-card">
+  <div class="login-logo">₱ PesoTracker</div>
+  <div class="login-sub">Personal Finance</div>
 
-    <button class="google-btn" id="google-login-btn">
-      <svg width="20" height="20" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      Mag-sign in gamit ang Google
-    </button>
+  <div class="login-title">Kumusta! 👋</div>
+  <div class="login-desc">I-sign in gamit ang iyong Google account para ma-access ang iyong data sa kahit anong device.</div>
 
-    <div class="login-note">Ang iyong data ay naka-save sa cloud at accessible sa lahat ng iyong devices.</div>
-  </div>
+  <button class="google-btn" id="google-btn">
+    <svg width="20" height="20" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Mag-sign in gamit ang Google
+  </button>
+
+  <div id="login-error"></div>
+  <div class="login-note">Ang iyong data ay naka-save sa cloud — accessible sa lahat ng iyong devices.</div>
 </div>
 
 <div id="toast-container"></div>
 
-<script type="module">
-  import { auth, loginWithGoogle, onAuthChanged } from './js/firebase.js';
+<!-- Firebase (type=module para sa CDN ESM) -->
+<script type="module" src="js/firebase.js"></script>
 
-  // If already logged in, redirect
-  onAuthChanged(user => {
-    if (user) window.location.href = 'index.html';
-  });
-
-  document.getElementById('google-login-btn').addEventListener('click', async () => {
-    try {
-      await loginWithGoogle();
-      // onAuthChanged will redirect
-    } catch (err) {
-      console.error(err);
-      alert('Login failed: ' + err.message);
+<script>
+  // Wait for fbLoginWithGoogle to be available then wire up button
+  (function poll(n) {
+    if (window.fbLoginWithGoogle) {
+      document.getElementById('google-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('google-btn');
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+        try {
+          await window.fbLoginWithGoogle();
+          // fbOnAuthChanged in auth.js will redirect to index.html
+        } catch (err) {
+          const errEl = document.getElementById('login-error');
+          errEl.textContent = 'Sign-in failed: ' + (err.message || err);
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Mag-sign in gamit ang Google`;
+        }
+      });
+    } else if (n < 80) {
+      setTimeout(() => poll(n + 1), 50);
     }
-  });
+  })(0);
 </script>
+
+<!-- auth.js handles redirect if already logged in -->
+<script src="js/auth.js"></script>
 </body>
 </html>

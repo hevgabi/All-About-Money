@@ -1,9 +1,10 @@
-// js/firebase.js — Firebase initialization
+// js/firebase.js — Firebase init + Auth + Firestore setup
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch }
+  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDQ5PtlG8ndo57xzxeNjYMejy-YhQAEJ0",
@@ -16,18 +17,43 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
-export function loginWithGoogle() {
-  return signInWithPopup(auth, googleProvider);
+// ── Auth helpers ─────────────────────────────────────────────
+window.fbLoginWithGoogle = () => signInWithPopup(auth, googleProvider);
+window.fbLogout          = () => signOut(auth);
+window.fbOnAuthChanged   = (cb) => onAuthStateChanged(auth, cb);
+
+// ── Firestore path helpers (per-user) ────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function userCol(colName) {
+  const userId = auth.currentUser?.uid;
+  if (!userId) throw new Error('Not logged in');
+  return collection(db, 'users', userId, colName);
+}
+function userDoc(colName, id) {
+  const userId = auth.currentUser?.uid;
+  if (!userId) throw new Error('Not logged in');
+  return doc(db, 'users', userId, colName, id);
+}
+function budgetDocRef() {
+  const userId = auth.currentUser?.uid;
+  if (!userId) throw new Error('Not logged in');
+  return doc(db, 'users', userId, 'meta', 'budgets');
+}
+async function colToArray(colName) {
+  const snap = await getDocs(userCol(colName));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-export function logout() {
-  return signOut(auth);
-}
+// ── Expose Firestore ops globally so data.js can call them ───
+window._fb = {
+  uid, userCol, userDoc, budgetDocRef, colToArray,
+  getDoc, setDoc, updateDoc, deleteDoc, writeBatch, db,
+  auth
+};
 
-export function onAuthChanged(callback) {
-  return onAuthStateChanged(auth, callback);
-}
+console.log('[firebase.js] loaded');

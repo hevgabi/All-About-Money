@@ -1,18 +1,13 @@
-// js/goals.js — Firebase version
-import { requireAuth } from './auth-guard.js';
-import { getGoals, getWallets, getWallet, addGoal, contributeToGoal, deleteGoal } from './data.js';
-import { formatMoney, escapeHtml } from './utils.js';
-import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
-
-let cachedGoals = [];
+// js/goals.js
+let _cachedGoals = [];
 
 async function renderGoals() {
   const [goals, wallets] = await Promise.all([getGoals(), getWallets()]);
-  cachedGoals = goals;
-  const walletMap = Object.fromEntries(wallets.map(w => [w.id, w]));
-  const container = document.getElementById('goals-list');
+  _cachedGoals = goals;
+  const walletMap  = Object.fromEntries(wallets.map(w => [w.id, w]));
+  const container  = document.getElementById('goals-list');
+  const walletSel  = document.getElementById('goal-wallet');
 
-  const walletSel = document.getElementById('goal-wallet');
   walletSel.innerHTML = wallets.length
     ? wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${formatMoney(w.balance)})</option>`).join('')
     : '<option value="">No wallets available</option>';
@@ -25,10 +20,10 @@ async function renderGoals() {
   const iconDel = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
 
   container.innerHTML = goals.map(g => {
-    const pct = g.targetAmount > 0 ? Math.min(100, (g.savedAmount / g.targetAmount) * 100) : 0;
+    const pct       = g.targetAmount > 0 ? Math.min(100, (g.savedAmount / g.targetAmount) * 100) : 0;
     const remaining = Math.max(0, g.targetAmount - g.savedAmount);
-    const wallet = walletMap[g.fundingWalletId];
-    const done = pct >= 100;
+    const wallet    = walletMap[g.fundingWalletId];
+    const done      = pct >= 100;
 
     return `
       <div class="goal-card">
@@ -39,9 +34,7 @@ async function renderGoals() {
         <div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">
           ${wallet ? `Wallet: ${escapeHtml(wallet.name)}` : '<span style="color:var(--danger)">Wallet not found</span>'}
         </div>
-        <div class="progress-wrap">
-          <div class="progress-bar" style="width:${pct}%"></div>
-        </div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
         <div style="display:flex;justify-content:space-between;margin:10px 0 16px;font-size:0.8rem">
           <span style="color:var(--accent)">Saved: ${formatMoney(g.savedAmount)}</span>
           <span style="color:var(--text2)">Target: ${formatMoney(g.targetAmount)}</span>
@@ -59,13 +52,13 @@ async function renderGoals() {
   }).join('');
 }
 
-requireAuth(async () => {
-  await renderGoals();
+document.addEventListener('DOMContentLoaded', () => {
+  renderGoals();
   setupModalClose('contribute-modal');
 
   document.getElementById('add-goal-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const nameEl = document.getElementById('goal-name');
+    const nameEl   = document.getElementById('goal-name');
     const targetEl = document.getElementById('goal-target');
     const walletId = document.getElementById('goal-wallet').value;
 
@@ -83,14 +76,14 @@ requireAuth(async () => {
 
   document.getElementById('goals-list').addEventListener('click', async e => {
     const contBtn = e.target.closest('.contribute-btn');
-    const delBtn = e.target.closest('.delete-goal-btn');
+    const delBtn  = e.target.closest('.delete-goal-btn');
 
     if (contBtn) {
-      const goal = cachedGoals.find(g => g.id === contBtn.dataset.id);
+      const goal   = _cachedGoals.find(g => g.id === contBtn.dataset.id);
       if (!goal) return;
       const wallet = await getWallet(goal.fundingWalletId);
       document.getElementById('contribute-goal-id').value = goal.id;
-      document.getElementById('contribute-amount').value = '';
+      document.getElementById('contribute-amount').value   = '';
       document.getElementById('contribute-goal-info').innerHTML = `
         <div style="font-weight:700;margin-bottom:6px">${escapeHtml(goal.name)}</div>
         <div style="font-size:0.8rem;color:var(--text2)">Target: ${formatMoney(goal.targetAmount)} &bull; Saved: ${formatMoney(goal.savedAmount)} &bull; Remaining: ${formatMoney(goal.targetAmount - goal.savedAmount)}</div>
