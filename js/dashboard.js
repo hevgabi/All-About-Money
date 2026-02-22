@@ -66,18 +66,17 @@ function prefillQuickTx(walletId, type) {
   document.getElementById('quick-tx-area').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  renderDashboard();
-
   document.getElementById('quick-tx-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const walletId = document.getElementById('qt-wallet').value;
     const amount   = parseFloat(document.getElementById('qt-amount').value);
     const place    = document.getElementById('qt-place').value;
 
-    if (!walletId)          { showToast('Select a wallet', 'error'); return; }
+    if (!walletId)              { showToast('Select a wallet', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
-    if (!place.trim())      { showToast('Enter a description', 'error'); return; }
+    if (!place.trim())          { showToast('Enter a description', 'error'); return; }
 
     await addTransaction({ dateISO: todayISO(), walletId, amount, place, type: qtType });
     showToast('Transaction added!', 'success');
@@ -86,3 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderDashboard();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderDashboard();
+};

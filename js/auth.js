@@ -13,7 +13,6 @@
     return PUBLIC_PAGES.some(pp => p === pp || p === pp + '.html');
   }
 
-  // Wait until firebase.js has registered fbOnAuthChanged
   function waitForFb(cb, tries = 0) {
     if (window.fbOnAuthChanged) { cb(); return; }
     if (tries > 40) { console.error('firebase.js not loaded'); return; }
@@ -31,12 +30,17 @@
         return;
       }
 
-      if (user) injectUserPanel(user);
+      if (user) {
+        injectUserPanel(user);
+        // ✅ Signal to page JS that auth is ready — render can now safely run
+        if (typeof window.onAuthReady === 'function') {
+          window.onAuthReady(user);
+        }
+      }
     });
   });
 
   function injectUserPanel(user) {
-    // Sidebar (desktop)
     const sidebar = document.querySelector('.sidebar-nav');
     if (sidebar && !document.getElementById('user-panel-sidebar')) {
       const panel = document.createElement('div');
@@ -55,7 +59,6 @@
       sidebar.appendChild(panel);
     }
 
-    // Mobile (FAB)
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav && !document.getElementById('fab-logout')) {
       const fab = document.createElement('button');

@@ -85,6 +85,7 @@ async function renderMonthlyReport() {
     : `<div class="empty-state"><p>No transactions for this month.</p></div>`;
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
   document.getElementById('week-ref-date').value = todayISO();
@@ -94,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('month-select').innerHTML = months.map((m, i) =>
     `<option value="${i+1}" ${i+1 === now.getMonth()+1 ? 'selected' : ''}>${m}</option>`
   ).join('');
-
-  renderWeeklyReport();
-  renderMonthlyReport();
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderWeeklyReport();
+  await renderMonthlyReport();
+};

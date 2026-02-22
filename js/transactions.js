@@ -40,7 +40,7 @@ async function renderTxList() {
   const walletMap = Object.fromEntries(wallets.map(w => [w.id, w.name]));
 
   let txns = allTxns;
-  if (customDate)                  txns = txns.filter(t => t.dateISO === customDate);
+  if (customDate)                     txns = txns.filter(t => t.dateISO === customDate);
   else if (currentFilter === 'today') txns = txns.filter(t => t.dateISO === todayISO());
   else if (currentFilter === 'week')  { const r = getThisWeekRange();  txns = txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
   else if (currentFilter === 'month') { const r = getThisMonthRange(); txns = txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
@@ -97,10 +97,9 @@ async function renderTxList() {
   `).join('');
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tx-date').value = todayISO();
-  populateWalletDropdown('tx-wallet', null);
-  renderTxList();
   setupModalClose('edit-tx-modal');
 
   document.getElementById('filter-date').addEventListener('change', e => {
@@ -136,10 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editBtn) {
       const tx = _cachedTxns.find(t => t.id === editBtn.dataset.id);
       if (!tx) return;
-      document.getElementById('edit-tx-id').value    = tx.id;
-      document.getElementById('edit-tx-date').value  = tx.dateISO;
-      document.getElementById('edit-tx-amount').value= tx.amount;
-      document.getElementById('edit-tx-place').value = tx.place;
+      document.getElementById('edit-tx-id').value     = tx.id;
+      document.getElementById('edit-tx-date').value   = tx.dateISO;
+      document.getElementById('edit-tx-amount').value = tx.amount;
+      document.getElementById('edit-tx-place').value  = tx.place;
       await populateWalletDropdown('edit-tx-wallet', tx.walletId);
       setEditTxType(tx.type);
       openModal('edit-tx-modal');
@@ -174,3 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderTxList();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await populateWalletDropdown('tx-wallet', null);
+  await renderTxList();
+};

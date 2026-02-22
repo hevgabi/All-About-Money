@@ -81,10 +81,8 @@ async function handleBudgetDelete(e) {
   }
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  renderWeeklySummary();
-  renderMonthlySummary();
-
   document.getElementById('weekly-expenses-list').addEventListener('click', handleBudgetDelete);
   document.getElementById('monthly-expenses-list').addEventListener('click', handleBudgetDelete);
 
@@ -116,3 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderMonthlySummary();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderWeeklySummary();
+  await renderMonthlySummary();
+};

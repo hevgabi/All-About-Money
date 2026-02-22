@@ -52,8 +52,8 @@ async function renderGoals() {
   }).join('');
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  renderGoals();
   setupModalClose('contribute-modal');
 
   document.getElementById('add-goal-form').addEventListener('submit', async e => {
@@ -119,3 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderGoals();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderGoals();
+};

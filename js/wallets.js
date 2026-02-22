@@ -24,8 +24,8 @@ async function renderWallets() {
   `).join('');
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  renderWallets();
   setupModalClose('edit-wallet-modal');
 
   document.getElementById('add-wallet-form').addEventListener('submit', async e => {
@@ -73,3 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderWallets();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderWallets();
+};

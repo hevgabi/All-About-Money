@@ -1,8 +1,7 @@
-// js/ui.js — Toast, Modal, Nav, Confirm (ES module)
-import { escapeHtml } from './utils.js';
+// js/ui.js — Toast, Modal, Nav, Confirm
 
 // ── Toast ────────────────────────────────────────────────────
-export function showToast(message, type = 'success') {
+function showToast(message, type = 'success') {
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -25,7 +24,7 @@ export function showToast(message, type = 'success') {
 }
 
 // ── Confirm dialog ───────────────────────────────────────────
-export function showConfirm(message, title = 'Confirm', okText = 'Delete') {
+function showConfirm(message, title = 'Confirm', okText = 'Delete') {
   return new Promise(resolve => {
     let overlay = document.getElementById('confirm-overlay');
     if (!overlay) {
@@ -59,15 +58,15 @@ export function showConfirm(message, title = 'Confirm', okText = 'Delete') {
 }
 
 // ── Modal ────────────────────────────────────────────────────
-export function openModal(id) {
+function openModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add('open');
 }
-export function closeModal(id) {
+function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('open');
 }
-export function setupModalClose(modalId) {
+function setupModalClose(modalId) {
   const overlay = document.getElementById(modalId);
   if (!overlay) return;
   overlay.addEventListener('click', e => {
@@ -79,7 +78,7 @@ export function setupModalClose(modalId) {
 }
 
 // ── Navigation active state ──────────────────────────────────
-export function setActiveNav() {
+function setActiveNav() {
   const page = location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
     const href = item.getAttribute('href') || '';
@@ -91,7 +90,7 @@ export function setActiveNav() {
 }
 
 // ── Form validation helper ───────────────────────────────────
-export function validateField(el) {
+function validateField(el) {
   if (!el.value.trim()) {
     el.classList.add('error');
     el.addEventListener('input', () => el.classList.remove('error'), { once: true });

@@ -40,9 +40,9 @@ function renderActiveWants(wants) {
 }
 
 function renderBoughtWants(bought) {
-  const section  = document.getElementById('bought-section');
-  const container= document.getElementById('bought-list');
-  const countEl  = document.getElementById('bought-count');
+  const section   = document.getElementById('bought-section');
+  const container = document.getElementById('bought-list');
+  const countEl   = document.getElementById('bought-count');
 
   if (bought.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
@@ -105,8 +105,8 @@ async function updateBuyWalletInfo() {
     ? `Available balance: ${formatMoney(wallet.balance)}` : '';
 }
 
+// ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  renderWants();
   setupModalClose('edit-want-modal');
   setupModalClose('buy-modal');
 
@@ -170,12 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const amount   = parseFloat(document.getElementById('buy-amount').value);
     const want     = _cachedWants.find(w => w.id === wantId);
 
-    if (!walletId)           { showToast('Select a wallet', 'error'); return; }
-    if (!amount || amount<=0){ showToast('Enter a valid amount', 'error'); return; }
-    if (!want)               { showToast('Want not found', 'error'); return; }
+    if (!walletId)            { showToast('Select a wallet', 'error'); return; }
+    if (!amount || amount<=0) { showToast('Enter a valid amount', 'error'); return; }
+    if (!want)                { showToast('Want not found', 'error'); return; }
 
     const wallet = await getWallet(walletId);
-    if (!wallet)             { showToast('Wallet not found', 'error'); return; }
+    if (!wallet)              { showToast('Wallet not found', 'error'); return; }
     if (amount > wallet.balance) { showToast(`Kulang ang balance! Available: ${formatMoney(wallet.balance)}`, 'error'); return; }
 
     await addTransaction({ dateISO: todayISO(), walletId, amount, place: `Bought: ${want.name}`, type: 'expense' });
@@ -201,3 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await renderWants();
   });
 });
+
+// ✅ Render only after auth is confirmed
+window.onAuthReady = async function () {
+  await renderWants();
+};
