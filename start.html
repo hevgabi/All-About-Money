@@ -40,10 +40,22 @@
           <span>Magsimula ng bagong data</span>
         </div>
       </button>
+
+      <div class="start-divider" id="continue-divider" style="display:none">o</div>
+
+      <button class="loader-btn" id="continue-btn" style="display:none;border-color:#7c3aed44;background:#7c3aed10;">
+        <div class="loader-btn-icon" style="background:#7c3aed20;color:#a78bfa;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="loader-btn-text">
+          <strong>Continue Existing Data</strong>
+          <span>Ituloy ang data na naka-save sa device na ito</span>
+        </div>
+      </button>
     </div>
 
     <div class="existing-data-notice" id="existing-notice">
-      ✓ May existing data sa device na ito — pwede mo ring i-continue ito sa pamamagitan ng "Start Fresh" (mananatili ang data)
+      ⚠️ May existing data sa device na ito — i-load mo muna ang JSON file mo, o i-clear ang data para magsimula ng bago.
     </div>
   </div>
 </div>
@@ -54,57 +66,6 @@
 <script src="js/data.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/ui.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const existing = loadData();
-  const hasData = existing.wallets.length > 0 || existing.transactions.length > 0;
-  if (hasData) {
-    document.getElementById('existing-notice').style.display = 'block';
-    document.querySelector('#fresh-btn .loader-btn-text span').textContent = 'I-continue ang existing data sa device na ito';
-  }
-
-  document.getElementById('load-btn').addEventListener('click', () => {
-    document.getElementById('json-file-input').click();
-  });
-
-  function loadJsonFile(file) {
-    if (!file) return;
-    if (!file.name.endsWith('.json')) { showToast('JSON file lang ang accepted!', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!parsed.wallets && !parsed.transactions && !parsed.goals) {
-          showToast('Invalid file — hindi ito PesoTracker data', 'error');
-          return;
-        }
-        localStorage.setItem('moneyTrackerData', JSON.stringify(parsed));
-        showToast('Data loaded! Redirecting...', 'success');
-        setTimeout(() => {
-          sessionStorage.setItem('pesotracker_session', '1');
-          window.location.href = 'index.html';
-        }, 1000);
-      } catch { showToast('Error reading file. Siguraduhing valid JSON ito.', 'error'); }
-    };
-    reader.readAsText(file);
-  }
-
-  document.getElementById('json-file-input').addEventListener('change', e => loadJsonFile(e.target.files[0]));
-
-  document.getElementById('fresh-btn').addEventListener('click', () => {
-    sessionStorage.setItem('pesotracker_session', '1');
-    window.location.href = 'index.html';
-  });
-
-  const loadBtn = document.getElementById('load-btn');
-  loadBtn.addEventListener('dragover', e => { e.preventDefault(); loadBtn.classList.add('dragover'); });
-  loadBtn.addEventListener('dragleave', () => loadBtn.classList.remove('dragover'));
-  loadBtn.addEventListener('drop', e => {
-    e.preventDefault();
-    loadBtn.classList.remove('dragover');
-    loadJsonFile(e.dataTransfer.files[0]);
-  });
-});
-</script>
+<script src="js/start.js"></script>
 </body>
-</html>F
+</html>
