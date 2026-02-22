@@ -99,4 +99,68 @@ function validateField(el) {
   return true;
 }
 
-document.addEventListener('DOMContentLoaded', setActiveNav);
+// ── Export / Import ──────────────────────────────────────────
+function exportData() {
+  const data = loadData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `pesotracker-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Data exported! I-save mo yung file.', 'success');
+}
+
+// Inject export button + back-to-start link into every page's sidebar
+function injectExportUI() {
+  // Sidebar export button
+  const sidebar = document.querySelector('.sidebar-nav');
+  if (sidebar) {
+    const exportBtn = document.createElement('div');
+    exportBtn.style.cssText = 'margin-top:auto;padding:12px;border-top:1px solid var(--border);margin-top:16px';
+    exportBtn.innerHTML = `
+      <button onclick="exportData()" class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px;font-size:0.82rem">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Data
+      </button>
+      <a href="start.html" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:0.78rem;color:var(--text3);padding:6px;border-radius:8px;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Switch / Load Data
+      </a>
+    `;
+    sidebar.appendChild(exportBtn);
+  }
+
+  // Bottom nav export (mobile) — add to bottom nav as a small floating button
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    // Add export as floating action button on mobile
+    const fab = document.createElement('button');
+    fab.onclick = exportData;
+    fab.title = 'Export Data';
+    fab.style.cssText = `
+      position:fixed;bottom:72px;right:16px;
+      width:44px;height:44px;
+      background:var(--card2);
+      border:1px solid var(--border2);
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--accent);
+      box-shadow:var(--shadow);
+      z-index:99;
+      transition:all 0.2s;
+    `;
+    fab.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+    fab.onmouseover = () => fab.style.transform = 'scale(1.1)';
+    fab.onmouseout = () => fab.style.transform = 'scale(1)';
+    document.body.appendChild(fab);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setActiveNav();
+  injectExportUI();
+});
