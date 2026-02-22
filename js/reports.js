@@ -1,16 +1,21 @@
-// js/reports.js
+// js/reports.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getTransactions, getWallets } from './data.js';
+import { formatMoney, formatDate, escapeHtml, getWeekRange, getMonthRange, isInRange, todayISO } from './utils.js';
+
 function switchTab(tab) {
   document.getElementById('tab-weekly').classList.toggle('active', tab === 'weekly');
   document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
   document.getElementById('weekly-report').style.display = tab === 'weekly' ? '' : 'none';
   document.getElementById('monthly-report').style.display = tab === 'monthly' ? '' : 'none';
 }
+window.switchTab = switchTab;
 
-function renderWeeklyReport() {
+async function renderWeeklyReport() {
   const refDate = document.getElementById('week-ref-date').value || todayISO();
   const range = getWeekRange(refDate);
-  const txns = getTransactions().filter(t => isInRange(t.dateISO, range.start, range.end));
-  const wallets = getWallets();
+  const [allTxns, wallets] = await Promise.all([getTransactions(), getWallets()]);
+  const txns = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
   const walletMap = Object.fromEntries(wallets.map(w => [w.id, w.name]));
 
   document.getElementById('weekly-range-label').textContent = `Week: ${formatDate(range.start)} – ${formatDate(range.end)}`;
@@ -31,7 +36,6 @@ function renderWeeklyReport() {
     <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.length}</div></div>
   `;
 
-  // Wallet breakdown
   const breakdownHtml = Object.entries(byWallet).map(([wid, d]) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--border)">
       <span style="font-weight:600">${escapeHtml(walletMap[wid] || 'Unknown')}</span>
@@ -49,12 +53,14 @@ function renderWeeklyReport() {
     </div>
   ` : '';
 }
+window.renderWeeklyReport = renderWeeklyReport;
 
-function renderMonthlyReport() {
+async function renderMonthlyReport() {
   const month = parseInt(document.getElementById('month-select').value);
   const year = parseInt(document.getElementById('year-select').value);
   const range = getMonthRange(year, month);
-  const txns = getTransactions().filter(t => isInRange(t.dateISO, range.start, range.end));
+  const allTxns = await getTransactions();
+  const txns = allTxns.filter(t => isInRange(t.dateISO, range.start, range.end));
 
   let totalExp = 0, totalInc = 0;
   const byDay = {};
@@ -90,8 +96,9 @@ function renderMonthlyReport() {
     </div>
   ` : `<div class="empty-state"><p>No transactions for this month.</p></div>`;
 }
+window.renderMonthlyReport = renderMonthlyReport;
 
-document.addEventListener('DOMContentLoaded', () => {
+requireAuth(async () => {
   const now = new Date();
   document.getElementById('week-ref-date').value = todayISO();
   document.getElementById('year-select').value = now.getFullYear();
@@ -101,6 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     `<option value="${i+1}" ${i+1 === now.getMonth()+1 ? 'selected' : ''}>${m}</option>`
   ).join('');
 
-  renderWeeklyReport();
-  renderMonthlyReport();
+  await renderWeeklyReport();
+  await renderMonthlyReport();
 });

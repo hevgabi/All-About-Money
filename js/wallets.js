@@ -1,6 +1,11 @@
-// js/wallets.js
-function renderWallets() {
-  const wallets = getWallets();
+// js/wallets.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getWallets, addWallet, updateWallet, deleteWallet } from './data.js';
+import { formatMoney, escapeHtml } from './utils.js';
+import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
+
+async function renderWallets() {
+  const wallets = await getWallets();
   const container = document.getElementById('wallets-list');
   if (wallets.length === 0) {
     container.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="15" rx="3"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg><p>No wallets yet. Add your first one above!</p></div>`;
@@ -24,49 +29,52 @@ function renderWallets() {
   `).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderWallets();
+requireAuth(async () => {
+  await renderWallets();
   setupModalClose('edit-wallet-modal');
 
-  document.getElementById('add-wallet-form').addEventListener('submit', e => {
+  document.getElementById('add-wallet-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('wallet-name');
     const balEl = document.getElementById('wallet-balance');
-    let valid = true;
-    if (!nameEl.value.trim()) { nameEl.classList.add('error'); valid = false; nameEl.addEventListener('input', () => nameEl.classList.remove('error'), { once: true }); }
-    if (!valid) return;
-    addWallet({ name: nameEl.value, balance: parseFloat(balEl.value) || 0 });
+    if (!nameEl.value.trim()) {
+      nameEl.classList.add('error');
+      nameEl.addEventListener('input', () => nameEl.classList.remove('error'), { once: true });
+      return;
+    }
+    await addWallet({ name: nameEl.value, balance: parseFloat(balEl.value) || 0 });
     showToast('Wallet added!', 'success');
     e.target.reset();
-    renderWallets();
+    await renderWallets();
   });
 
-  document.getElementById('wallets-list').addEventListener('click', e => {
+  document.getElementById('wallets-list').addEventListener('click', async e => {
     const editBtn = e.target.closest('.edit-btn');
     const deleteBtn = e.target.closest('.delete-btn');
+
     if (editBtn) {
       document.getElementById('edit-wallet-id').value = editBtn.dataset.id;
       document.getElementById('edit-wallet-name').value = editBtn.dataset.name;
       openModal('edit-wallet-modal');
     }
+
     if (deleteBtn) {
-      showConfirm(`Delete "${deleteBtn.dataset.name}"? All related transactions will be removed.`, 'Delete Wallet').then(ok => {
-        if (!ok) return;
-        deleteWallet(deleteBtn.dataset.id);
-        showToast('Wallet deleted', 'success');
-        renderWallets();
-      });
+      const ok = await showConfirm(`Delete "${deleteBtn.dataset.name}"? All related transactions will be removed.`, 'Delete Wallet');
+      if (!ok) return;
+      await deleteWallet(deleteBtn.dataset.id);
+      showToast('Wallet deleted', 'success');
+      await renderWallets();
     }
   });
 
-  document.getElementById('edit-wallet-form').addEventListener('submit', e => {
+  document.getElementById('edit-wallet-form').addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('edit-wallet-id').value;
     const nameEl = document.getElementById('edit-wallet-name');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); return; }
-    updateWallet(id, { name: nameEl.value });
+    await updateWallet(id, { name: nameEl.value });
     showToast('Wallet updated!', 'success');
     closeModal('edit-wallet-modal');
-    renderWallets();
+    await renderWallets();
   });
 });

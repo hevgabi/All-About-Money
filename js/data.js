@@ -1,183 +1,227 @@
-// js/data.js — Single source of truth via localStorage
+// js/data.js — Firestore backend (replaces localStorage version)
 
-const STORAGE_KEY = 'moneyTrackerData';
+import { db, auth } from './firebase.js';
+import {
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, orderBy, writeBatch, getDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
-const DEFAULT_DATA = {
-  wallets: [],
-  transactions: [],
-  wants: [],
-  budgets: {
-    weekly: { allowanceAmount: 0, fixedExpenses: [], createdAt: new Date().toISOString() },
-    monthly: { fixedExpenses: [], createdAt: new Date().toISOString() }
-  },
-  goals: []
-};
+// ── Helpers ───────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function now() { return new Date().toISOString(); }
+export function todayISO() { return new Date().toISOString().slice(0, 10); }
 
-function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULT_DATA);
-    const parsed = JSON.parse(raw);
-    // Merge defaults for missing keys
-    return {
-      wallets: parsed.wallets || [],
-      transactions: parsed.transactions || [],
-      wants: parsed.wants || [],
-      budgets: {
-        weekly: parsed.budgets?.weekly || structuredClone(DEFAULT_DATA.budgets.weekly),
-        monthly: parsed.budgets?.monthly || structuredClone(DEFAULT_DATA.budgets.monthly)
-      },
-      goals: parsed.goals || []
-    };
-  } catch { return structuredClone(DEFAULT_DATA); }
+function userCol(colName) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Not logged in');
+  return collection(db, 'users', uid, colName);
 }
 
-function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function userDoc(colName, id) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Not logged in');
+  return doc(db, 'users', uid, colName, id);
 }
 
-// ── Wallets ──────────────────────────────────────────────────
-function getWallets() { return loadData().wallets; }
-function getWallet(id) { return getWallets().find(w => w.id === id) || null; }
-
-function addWallet({ name, balance }) {
-  const data = loadData();
-  const wallet = { id: uid(), name: name.trim(), balance: Number(balance) || 0, createdAt: now() };
-  data.wallets.push(wallet);
-  saveData(data);
-  return wallet;
+function budgetDoc() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Not logged in');
+  return doc(db, 'users', uid, 'meta', 'budgets');
 }
 
-function updateWallet(id, { name }) {
-  const data = loadData();
-  const w = data.wallets.find(w => w.id === id);
-  if (!w) return null;
-  if (name !== undefined) w.name = name.trim();
-  saveData(data);
-  return w;
+async function colToArray(colName) {
+  const snap = await getDocs(userCol(colName));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-function deleteWallet(id) {
-  const data = loadData();
-  data.wallets = data.wallets.filter(w => w.id !== id);
-  // Orphan cleanup - remove related transactions
-  data.transactions = data.transactions.filter(t => t.walletId !== id);
+// ── Wallets ───────────────────────────────────────────────────
+export async function getWallets() {
+  return colToArray('wallets');
+}
+
+export async function getWallet(id) {
+  const snap = await getDoc(userDoc('wallets', id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function addWallet({ name, balance }) {
+  const id = uid();
+  const wallet = { name: name.trim(), balance: Number(balance) || 0, createdAt: now() };
+  await setDoc(userDoc('wallets', id), wallet);
+  return { id, ...wallet };
+}
+
+export async function updateWallet(id, { name }) {
+  const ref = userDoc('wallets', id);
+  await updateDoc(ref, { name: name.trim() });
+  return { id, name };
+}
+
+export async function deleteWallet(id) {
+  const batch = writeBatch(db);
+
+  // Delete wallet
+  batch.delete(userDoc('wallets', id));
+
+  // Delete related transactions
+  const txns = await colToArray('transactions');
+  txns.filter(t => t.walletId === id)
+    .forEach(t => batch.delete(userDoc('transactions', t.id)));
+
   // Nullify goals using this wallet
-  data.goals = data.goals.map(g => g.fundingWalletId === id ? { ...g, fundingWalletId: null } : g);
-  saveData(data);
+  const goals = await colToArray('goals');
+  goals.filter(g => g.fundingWalletId === id)
+    .forEach(g => batch.update(userDoc('goals', g.id), { fundingWalletId: null }));
+
+  await batch.commit();
 }
 
-function adjustWalletBalance(id, delta) {
-  const data = loadData();
-  const w = data.wallets.find(w => w.id === id);
-  if (!w) return;
-  w.balance += delta;
-  saveData(data);
+export async function adjustWalletBalance(id, delta) {
+  const wallet = await getWallet(id);
+  if (!wallet) return;
+  await updateDoc(userDoc('wallets', id), { balance: wallet.balance + delta });
 }
 
-// ── Transactions ─────────────────────────────────────────────
-function getTransactions() { return loadData().transactions; }
+// ── Transactions ──────────────────────────────────────────────
+export async function getTransactions() {
+  return colToArray('transactions');
+}
 
-function addTransaction({ dateISO, walletId, amount, place, type }) {
-  const data = loadData();
-  const tx = { id: uid(), dateISO, walletId, amount: Number(amount), place: place.trim(), type, createdAt: now() };
-  data.transactions.push(tx);
+export async function addTransaction({ dateISO, walletId, amount, place, type }) {
+  const id = uid();
+  amount = Number(amount);
+  const tx = { dateISO, walletId, amount, place: place.trim(), type, createdAt: now() };
+
+  const batch = writeBatch(db);
+  batch.set(userDoc('transactions', id), tx);
+
   // Update wallet balance
-  const w = data.wallets.find(w => w.id === walletId);
-  if (w) w.balance += type === 'income' ? tx.amount : -tx.amount;
-  saveData(data);
-  return tx;
+  const wallet = await getWallet(walletId);
+  if (wallet) {
+    const newBal = wallet.balance + (type === 'income' ? amount : -amount);
+    batch.update(userDoc('wallets', walletId), { balance: newBal });
+  }
+
+  await batch.commit();
+  return { id, ...tx };
 }
 
-function updateTransaction(id, updates) {
-  const data = loadData();
-  const idx = data.transactions.findIndex(t => t.id === id);
-  if (idx === -1) return null;
-  const old = data.transactions[idx];
+export async function updateTransaction(id, updates) {
+  const old = { id, ...(await getDoc(userDoc('transactions', id))).data() };
+  const batch = writeBatch(db);
 
-  // Revert old effect
-  const oldWallet = data.wallets.find(w => w.id === old.walletId);
-  if (oldWallet) oldWallet.balance -= old.type === 'income' ? old.amount : -old.amount;
+  // Revert old effect on wallet
+  const oldWallet = await getWallet(old.walletId);
+  if (oldWallet) {
+    const reverted = oldWallet.balance - (old.type === 'income' ? old.amount : -old.amount);
+    batch.update(userDoc('wallets', old.walletId), { balance: reverted });
+  }
 
   // Apply new
-  const updated = { ...old, ...updates, amount: Number(updates.amount ?? old.amount), id };
-  data.transactions[idx] = updated;
-  const newWallet = data.wallets.find(w => w.id === updated.walletId);
-  if (newWallet) newWallet.balance += updated.type === 'income' ? updated.amount : -updated.amount;
+  const updated = { ...old, ...updates, amount: Number(updates.amount ?? old.amount) };
+  delete updated.id;
+  batch.update(userDoc('transactions', id), updated);
 
-  saveData(data);
-  return updated;
+  // Apply new effect on wallet
+  const newWallet = await getWallet(updated.walletId);
+  if (newWallet) {
+    const newBal = newWallet.balance + (updated.type === 'income' ? updated.amount : -updated.amount);
+    batch.update(userDoc('wallets', updated.walletId), { balance: newBal });
+  }
+
+  await batch.commit();
+  return { id, ...updated };
 }
 
-function deleteTransaction(id) {
-  const data = loadData();
-  const tx = data.transactions.find(t => t.id === id);
-  if (!tx) return;
-  // Revert wallet
-  const w = data.wallets.find(w => w.id === tx.walletId);
-  if (w) w.balance -= tx.type === 'income' ? tx.amount : -tx.amount;
-  data.transactions = data.transactions.filter(t => t.id !== id);
-  saveData(data);
+export async function deleteTransaction(id) {
+  const snap = await getDoc(userDoc('transactions', id));
+  if (!snap.exists()) return;
+  const tx = snap.data();
+
+  const batch = writeBatch(db);
+  batch.delete(userDoc('transactions', id));
+
+  const wallet = await getWallet(tx.walletId);
+  if (wallet) {
+    const newBal = wallet.balance - (tx.type === 'income' ? tx.amount : -tx.amount);
+    batch.update(userDoc('wallets', tx.walletId), { balance: newBal });
+  }
+
+  await batch.commit();
 }
 
-// ── Wants ────────────────────────────────────────────────────
-function getWants() { return loadData().wants; }
-
-function addWant({ name, price, priority, notes }) {
-  const data = loadData();
-  const want = { id: uid(), name: name.trim(), price: Number(price), priority: Number(priority), notes: (notes || '').trim(), createdAt: now() };
-  data.wants.push(want);
-  saveData(data);
-  return want;
+// ── Wants ─────────────────────────────────────────────────────
+export async function getWants() {
+  return colToArray('wants');
 }
 
-function updateWant(id, updates) {
-  const data = loadData();
-  const idx = data.wants.findIndex(w => w.id === id);
-  if (idx === -1) return null;
-  data.wants[idx] = { ...data.wants[idx], ...updates, price: Number(updates.price ?? data.wants[idx].price), priority: Number(updates.priority ?? data.wants[idx].priority) };
-  saveData(data);
-  return data.wants[idx];
+export async function addWant({ name, price, priority, notes }) {
+  const id = uid();
+  const want = { name: name.trim(), price: Number(price), priority: Number(priority), notes: (notes || '').trim(), createdAt: now() };
+  await setDoc(userDoc('wants', id), want);
+  return { id, ...want };
 }
 
-function deleteWant(id) {
-  const data = loadData();
-  data.wants = data.wants.filter(w => w.id !== id);
-  saveData(data);
+export async function updateWant(id, updates) {
+  const ref = userDoc('wants', id);
+  const cleaned = {
+    ...updates,
+    price: Number(updates.price),
+    priority: Number(updates.priority)
+  };
+  await updateDoc(ref, cleaned);
+  return { id, ...cleaned };
 }
 
-// ── Budgets ──────────────────────────────────────────────────
-function getBudgets() { return loadData().budgets; }
-
-function saveWeeklyBudget(allowanceAmount, fixedExpenses) {
-  const data = loadData();
-  data.budgets.weekly = { allowanceAmount: Number(allowanceAmount), fixedExpenses, createdAt: data.budgets.weekly.createdAt };
-  saveData(data);
+export async function deleteWant(id) {
+  await deleteDoc(userDoc('wants', id));
 }
 
-function saveMonthlyBudget(fixedExpenses) {
-  const data = loadData();
-  data.budgets.monthly = { fixedExpenses, createdAt: data.budgets.monthly.createdAt };
-  saveData(data);
+// ── Budgets ───────────────────────────────────────────────────
+const DEFAULT_BUDGETS = {
+  weekly: { allowanceAmount: 0, fixedExpenses: [], createdAt: now() },
+  monthly: { fixedExpenses: [], createdAt: now() }
+};
+
+export async function getBudgets() {
+  const snap = await getDoc(budgetDoc());
+  return snap.exists() ? snap.data() : DEFAULT_BUDGETS;
 }
 
-// ── Goals ────────────────────────────────────────────────────
-function getGoals() { return loadData().goals; }
-
-function addGoal({ name, targetAmount, fundingWalletId }) {
-  const data = loadData();
-  const goal = { id: uid(), name: name.trim(), targetAmount: Number(targetAmount), fundingWalletId, savedAmount: 0, createdAt: now() };
-  data.goals.push(goal);
-  saveData(data);
-  return goal;
+export async function saveWeeklyBudget(allowanceAmount, fixedExpenses) {
+  const budgets = await getBudgets();
+  await setDoc(budgetDoc(), {
+    ...budgets,
+    weekly: { allowanceAmount: Number(allowanceAmount), fixedExpenses, createdAt: budgets.weekly?.createdAt || now() }
+  });
 }
 
-function contributeToGoal(goalId, amount) {
-  const data = loadData();
-  const goal = data.goals.find(g => g.id === goalId);
-  if (!goal) return { error: 'Goal not found' };
+export async function saveMonthlyBudget(fixedExpenses) {
+  const budgets = await getBudgets();
+  await setDoc(budgetDoc(), {
+    ...budgets,
+    monthly: { fixedExpenses, createdAt: budgets.monthly?.createdAt || now() }
+  });
+}
 
-  const wallet = data.wallets.find(w => w.id === goal.fundingWalletId);
+// ── Goals ─────────────────────────────────────────────────────
+export async function getGoals() {
+  return colToArray('goals');
+}
+
+export async function addGoal({ name, targetAmount, fundingWalletId }) {
+  const id = uid();
+  const goal = { name: name.trim(), targetAmount: Number(targetAmount), fundingWalletId, savedAmount: 0, createdAt: now() };
+  await setDoc(userDoc('goals', id), goal);
+  return { id, ...goal };
+}
+
+export async function contributeToGoal(goalId, amount) {
+  const goalSnap = await getDoc(userDoc('goals', goalId));
+  if (!goalSnap.exists()) return { error: 'Goal not found' };
+  const goal = { id: goalId, ...goalSnap.data() };
+
+  const wallet = await getWallet(goal.fundingWalletId);
   if (!wallet) return { error: 'Funding wallet not found or deleted' };
 
   amount = Number(amount);
@@ -185,35 +229,28 @@ function contributeToGoal(goalId, amount) {
   if (amount > wallet.balance) return { error: 'Insufficient wallet balance' };
 
   const remaining = goal.targetAmount - goal.savedAmount;
-  if (amount > remaining) amount = remaining; // cap to remaining
+  if (amount > remaining) amount = remaining;
 
-  goal.savedAmount += amount;
-  wallet.balance -= amount;
+  const batch = writeBatch(db);
+  batch.update(userDoc('goals', goalId), { savedAmount: goal.savedAmount + amount });
+  batch.update(userDoc('wallets', wallet.id), { balance: wallet.balance - amount });
 
   // Log as transaction
-  const tx = { id: uid(), dateISO: todayISO(), walletId: wallet.id, amount, place: `Goal: ${goal.name}`, type: 'expense', createdAt: now() };
-  data.transactions.push(tx);
+  const txId = uid();
+  batch.set(userDoc('transactions', txId), {
+    dateISO: todayISO(), walletId: wallet.id, amount,
+    place: `Goal: ${goal.name}`, type: 'expense', createdAt: now()
+  });
 
-  saveData(data);
+  await batch.commit();
   return { goal, amount };
 }
 
-function deleteGoal(id) {
-  const data = loadData();
-  data.goals = data.goals.filter(g => g.id !== id);
-  saveData(data);
+export async function deleteGoal(id) {
+  await deleteDoc(userDoc('goals', id));
 }
 
-function updateGoal(id, updates) {
-  const data = loadData();
-  const idx = data.goals.findIndex(g => g.id === id);
-  if (idx === -1) return null;
-  data.goals[idx] = { ...data.goals[idx], ...updates };
-  saveData(data);
-  return data.goals[idx];
+export async function updateGoal(id, updates) {
+  await updateDoc(userDoc('goals', id), updates);
+  return { id, ...updates };
 }
-
-// ── Helpers ──────────────────────────────────────────────────
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-function now() { return new Date().toISOString(); }
-function todayISO() { return new Date().toISOString().slice(0, 10); }

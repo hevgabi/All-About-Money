@@ -1,10 +1,18 @@
-// js/budget.js
+// js/budget.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getBudgets, saveWeeklyBudget, saveMonthlyBudget } from './data.js';
+import { formatMoney, escapeHtml } from './utils.js';
+import { showToast } from './ui.js';
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
 function switchBudgetTab(tab) {
   document.getElementById('tab-weekly').classList.toggle('active', tab === 'weekly');
   document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
   document.getElementById('weekly-budget').style.display = tab === 'weekly' ? '' : 'none';
   document.getElementById('monthly-budget').style.display = tab === 'monthly' ? '' : 'none';
 }
+window.switchBudgetTab = switchBudgetTab;
 
 function renderExpensesList(expenses, containerId, type) {
   const container = document.getElementById(containerId);
@@ -24,8 +32,8 @@ function renderExpensesList(expenses, containerId, type) {
   `).join('');
 }
 
-function renderWeeklySummary() {
-  const budgets = getBudgets();
+async function renderWeeklySummary() {
+  const budgets = await getBudgets();
   const allowance = budgets.weekly.allowanceAmount || 0;
   const exps = budgets.weekly.fixedExpenses || [];
   const totalFixed = exps.reduce((s, e) => s + e.amount, 0);
@@ -49,8 +57,8 @@ function renderWeeklySummary() {
   renderExpensesList(exps, 'weekly-expenses-list', 'weekly');
 }
 
-function renderMonthlySummary() {
-  const budgets = getBudgets();
+async function renderMonthlySummary() {
+  const budgets = await getBudgets();
   const exps = budgets.monthly.fixedExpenses || [];
   const totalFixed = exps.reduce((s, e) => s + e.amount, 0);
 
@@ -71,67 +79,67 @@ function renderMonthlySummary() {
   renderExpensesList(exps, 'monthly-expenses-list', 'monthly');
 }
 
-function saveWeeklyAllowance() {
+async function saveWeeklyAllowance() {
   const val = parseFloat(document.getElementById('weekly-allowance').value) || 0;
-  const budgets = getBudgets();
-  saveWeeklyBudget(val, budgets.weekly.fixedExpenses || []);
+  const budgets = await getBudgets();
+  await saveWeeklyBudget(val, budgets.weekly.fixedExpenses || []);
   showToast('Allowance saved!', 'success');
-  renderWeeklySummary();
+  await renderWeeklySummary();
 }
+window.saveWeeklyAllowance = saveWeeklyAllowance;
 
-// Delete expense delegation
-function handleBudgetDelete(e) {
-  const btn = e.target.closest('.delete-budget-exp');
-  if (!btn) return;
-  const type = btn.dataset.type;
-  const id = btn.dataset.id;
-  const budgets = getBudgets();
+requireAuth(async () => {
+  await renderWeeklySummary();
+  await renderMonthlySummary();
 
-  if (type === 'weekly') {
-    const exps = (budgets.weekly.fixedExpenses || []).filter(ex => ex.id !== id);
-    saveWeeklyBudget(budgets.weekly.allowanceAmount, exps);
-    showToast('Expense removed', 'success');
-    renderWeeklySummary();
-  } else {
-    const exps = (budgets.monthly.fixedExpenses || []).filter(ex => ex.id !== id);
-    saveMonthlyBudget(exps);
-    showToast('Expense removed', 'success');
-    renderMonthlySummary();
+  async function handleBudgetDelete(e) {
+    const btn = e.target.closest('.delete-budget-exp');
+    if (!btn) return;
+    const type = btn.dataset.type;
+    const id = btn.dataset.id;
+    const budgets = await getBudgets();
+
+    if (type === 'weekly') {
+      const exps = (budgets.weekly.fixedExpenses || []).filter(ex => ex.id !== id);
+      await saveWeeklyBudget(budgets.weekly.allowanceAmount, exps);
+      showToast('Expense removed', 'success');
+      await renderWeeklySummary();
+    } else {
+      const exps = (budgets.monthly.fixedExpenses || []).filter(ex => ex.id !== id);
+      await saveMonthlyBudget(exps);
+      showToast('Expense removed', 'success');
+      await renderMonthlySummary();
+    }
   }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderWeeklySummary();
-  renderMonthlySummary();
 
   document.getElementById('weekly-expenses-list').addEventListener('click', handleBudgetDelete);
   document.getElementById('monthly-expenses-list').addEventListener('click', handleBudgetDelete);
 
-  document.getElementById('add-weekly-expense-form').addEventListener('submit', e => {
+  document.getElementById('add-weekly-expense-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('weekly-exp-name');
     const amtEl = document.getElementById('weekly-exp-amount');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); nameEl.addEventListener('input', () => nameEl.classList.remove('error'), {once:true}); return; }
     const amount = parseFloat(amtEl.value) || 0;
-    const budgets = getBudgets();
+    const budgets = await getBudgets();
     const exps = [...(budgets.weekly.fixedExpenses || []), { id: uid(), name: nameEl.value.trim(), amount }];
-    saveWeeklyBudget(budgets.weekly.allowanceAmount, exps);
+    await saveWeeklyBudget(budgets.weekly.allowanceAmount, exps);
     showToast('Expense added!', 'success');
     e.target.reset();
-    renderWeeklySummary();
+    await renderWeeklySummary();
   });
 
-  document.getElementById('add-monthly-expense-form').addEventListener('submit', e => {
+  document.getElementById('add-monthly-expense-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('monthly-exp-name');
     const amtEl = document.getElementById('monthly-exp-amount');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); nameEl.addEventListener('input', () => nameEl.classList.remove('error'), {once:true}); return; }
     const amount = parseFloat(amtEl.value) || 0;
-    const budgets = getBudgets();
+    const budgets = await getBudgets();
     const exps = [...(budgets.monthly.fixedExpenses || []), { id: uid(), name: nameEl.value.trim(), amount }];
-    saveMonthlyBudget(exps);
+    await saveMonthlyBudget(exps);
     showToast('Expense added!', 'success');
     e.target.reset();
-    renderMonthlySummary();
+    await renderMonthlySummary();
   });
 });

@@ -1,4 +1,9 @@
-// js/transactions.js
+// js/transactions.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getWallets, getTransactions, addTransaction, updateTransaction, deleteTransaction, todayISO } from './data.js';
+import { formatMoney, formatDate, escapeHtml, getThisWeekRange, getThisMonthRange, isInRange, todayISO as utilsToday } from './utils.js';
+import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
+
 let txType = 'expense';
 let editTxType = 'expense';
 let currentFilter = 'today';
@@ -14,6 +19,8 @@ function setEditTxType(type) {
   document.getElementById('edit-expense-btn').className = type === 'expense' ? 'active-expense' : '';
   document.getElementById('edit-income-btn').className = type === 'income' ? 'active-income' : '';
 }
+window.setTxType = setTxType;
+window.setEditTxType = setEditTxType;
 
 function setFilter(f) {
   currentFilter = f;
@@ -24,28 +31,39 @@ function setFilter(f) {
   });
   renderTxList();
 }
+window.setFilter = setFilter;
 
-function getFilteredTxns() {
-  const txns = getTransactions();
+async function getFilteredTxns() {
+  const txns = await getTransactions();
   if (customDate) return txns.filter(t => t.dateISO === customDate);
-  if (currentFilter === 'today') return txns.filter(t => t.dateISO === todayISO());
+  if (currentFilter === 'today') return txns.filter(t => t.dateISO === utilsToday());
   if (currentFilter === 'week') { const r = getThisWeekRange(); return txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
   if (currentFilter === 'month') { const r = getThisMonthRange(); return txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
   return txns;
 }
 
-function populateWalletDropdown(selectId, selectedId) {
-  const wallets = getWallets();
+async function populateWalletDropdown(selectId, selectedId) {
+  const wallets = await getWallets();
   const sel = document.getElementById(selectId);
   sel.innerHTML = wallets.length
     ? wallets.map(w => `<option value="${w.id}" ${w.id === selectedId ? 'selected' : ''}>${escapeHtml(w.name)}</option>`).join('')
     : '<option value="">No wallets</option>';
 }
 
-function renderTxList() {
-  const txns = getFilteredTxns().sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-  const wallets = getWallets();
-  const walletMap = Object.fromEntries(wallets.map(w => [w.id, w.name]));
+let allTxns = [];
+let allWallets = [];
+
+async function renderTxList() {
+  [allTxns, allWallets] = await Promise.all([getTransactions(), getWallets()]);
+  const walletMap = Object.fromEntries(allWallets.map(w => [w.id, w.name]));
+
+  let txns = allTxns;
+  if (customDate) txns = txns.filter(t => t.dateISO === customDate);
+  else if (currentFilter === 'today') txns = txns.filter(t => t.dateISO === utilsToday());
+  else if (currentFilter === 'week') { const r = getThisWeekRange(); txns = txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
+  else if (currentFilter === 'month') { const r = getThisMonthRange(); txns = txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
+
+  txns = txns.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
 
   let totalExp = 0, totalInc = 0;
   txns.forEach(t => { if (t.type === 'expense') totalExp += t.amount; else totalInc += t.amount; });
@@ -74,7 +92,6 @@ function renderTxList() {
     return;
   }
 
-  // Table
   document.getElementById('tx-tbody').innerHTML = txns.map(t => `
     <tr>
       <td>${formatDate(t.dateISO)}</td>
@@ -91,7 +108,6 @@ function renderTxList() {
     </tr>
   `).join('');
 
-  // Mobile cards
   document.getElementById('tx-cards').innerHTML = txns.map(t => `
     <div class="tx-card">
       <div class="tx-card-header">
@@ -111,14 +127,12 @@ function renderTxList() {
   `).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Set defaults
-  document.getElementById('tx-date').value = todayISO();
-  populateWalletDropdown('tx-wallet', null);
-  renderTxList();
+requireAuth(async () => {
+  document.getElementById('tx-date').value = utilsToday();
+  await populateWalletDropdown('tx-wallet', null);
+  await renderTxList();
   setupModalClose('edit-tx-modal');
 
-  // Filter by date picker
   document.getElementById('filter-date').addEventListener('change', e => {
     if (!e.target.value) return;
     customDate = e.target.value;
@@ -126,8 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTxList();
   });
 
-  // Add transaction
-  document.getElementById('add-tx-form').addEventListener('submit', e => {
+  document.getElementById('add-tx-form').addEventListener('submit', async e => {
     e.preventDefault();
     const date = document.getElementById('tx-date').value;
     const walletId = document.getElementById('tx-wallet').value;
@@ -139,45 +152,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
     if (!place.trim()) { showToast('Enter a description', 'error'); return; }
 
-    addTransaction({ dateISO: date, walletId, amount, place, type: txType });
+    await addTransaction({ dateISO: date, walletId, amount, place, type: txType });
     showToast('Transaction added!', 'success');
     document.getElementById('tx-amount').value = '';
     document.getElementById('tx-place').value = '';
-    renderTxList();
+    await renderTxList();
   });
 
-  // Event delegation for table/cards
-  function handleTxAction(e) {
+  async function handleTxAction(e) {
     const editBtn = e.target.closest('.edit-tx-btn');
     const delBtn = e.target.closest('.delete-tx-btn');
 
     if (editBtn) {
-      const tx = getTransactions().find(t => t.id === editBtn.dataset.id);
+      const tx = allTxns.find(t => t.id === editBtn.dataset.id);
       if (!tx) return;
       document.getElementById('edit-tx-id').value = tx.id;
       document.getElementById('edit-tx-date').value = tx.dateISO;
       document.getElementById('edit-tx-amount').value = tx.amount;
       document.getElementById('edit-tx-place').value = tx.place;
-      populateWalletDropdown('edit-tx-wallet', tx.walletId);
+      await populateWalletDropdown('edit-tx-wallet', tx.walletId);
       setEditTxType(tx.type);
       openModal('edit-tx-modal');
     }
 
     if (delBtn) {
-      showConfirm(`Delete "${delBtn.dataset.place}"?`, 'Delete Transaction').then(ok => {
-        if (!ok) return;
-        deleteTransaction(delBtn.dataset.id);
-        showToast('Transaction deleted', 'success');
-        renderTxList();
-      });
+      const ok = await showConfirm(`Delete "${delBtn.dataset.place}"?`, 'Delete Transaction');
+      if (!ok) return;
+      await deleteTransaction(delBtn.dataset.id);
+      showToast('Transaction deleted', 'success');
+      await renderTxList();
     }
   }
 
   document.getElementById('tx-tbody').addEventListener('click', handleTxAction);
   document.getElementById('tx-cards').addEventListener('click', handleTxAction);
 
-  // Edit submit
-  document.getElementById('edit-tx-form').addEventListener('submit', e => {
+  document.getElementById('edit-tx-form').addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('edit-tx-id').value;
     const dateISO = document.getElementById('edit-tx-date').value;
@@ -188,9 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
     if (!place.trim()) { showToast('Enter a description', 'error'); return; }
 
-    updateTransaction(id, { dateISO, walletId, amount, place, type: editTxType });
+    await updateTransaction(id, { dateISO, walletId, amount, place, type: editTxType });
     showToast('Transaction updated!', 'success');
     closeModal('edit-tx-modal');
-    renderTxList();
+    await renderTxList();
   });
 });

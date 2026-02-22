@@ -1,32 +1,28 @@
-// js/wants.js
+// js/wants.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getWants, getWallets, getWallet, addWant, updateWant, deleteWant, addTransaction, todayISO } from './data.js';
+import { formatMoney, formatDate, escapeHtml } from './utils.js';
+import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
 
-function renderWants() {
-  const allWants = getWants();
-  const active = allWants
-    .filter(w => !w.boughtAt)
-    .sort((a, b) => a.priority - b.priority || b.createdAt.localeCompare(a.createdAt));
-  const bought = allWants
-    .filter(w => w.boughtAt)
-    .sort((a, b) => b.boughtAt.localeCompare(a.boughtAt));
+let cachedWants = [];
 
-  const countEl = document.getElementById('wants-count');
-  countEl.textContent = active.length ? `(${active.length})` : '';
+async function renderWants() {
+  const allWants = await getWants();
+  cachedWants = allWants;
+  const active = allWants.filter(w => !w.boughtAt).sort((a, b) => a.priority - b.priority || b.createdAt.localeCompare(a.createdAt));
+  const bought = allWants.filter(w => w.boughtAt).sort((a, b) => b.boughtAt.localeCompare(a.boughtAt));
 
+  document.getElementById('wants-count').textContent = active.length ? `(${active.length})` : '';
   renderActiveWants(active);
   renderBoughtWants(bought);
 }
 
 function renderActiveWants(wants) {
   const container = document.getElementById('wants-list');
-
   if (wants.length === 0) {
-    container.innerHTML = `<div class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-      <p>Wala pang wants. Magdagdag ng gusto mong bilhin!</p>
-    </div>`;
+    container.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><p>Wala pang wants. Magdagdag ng gusto mong bilhin!</p></div>`;
     return;
   }
-
   const iconEdit = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
   const iconDel = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
   const iconCheck = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>`;
@@ -55,11 +51,7 @@ function renderBoughtWants(bought) {
   const container = document.getElementById('bought-list');
   const countEl = document.getElementById('bought-count');
 
-  if (bought.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
-
+  if (bought.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
   countEl.textContent = `(${bought.length})`;
 
@@ -86,14 +78,13 @@ function renderBoughtWants(bought) {
   `).join('');
 }
 
-function openBuyModal(wantId) {
-  const want = getWants().find(w => w.id === wantId);
+async function openBuyModal(wantId) {
+  const want = cachedWants.find(w => w.id === wantId);
   if (!want) return;
+  const wallets = await getWallets();
 
-  const wallets = getWallets();
   document.getElementById('buy-want-id').value = wantId;
   document.getElementById('buy-amount').value = want.price || '';
-
   document.getElementById('buy-modal-info').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
@@ -109,27 +100,23 @@ function openBuyModal(wantId) {
     ? wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} — ${formatMoney(w.balance)}</option>`).join('')
     : '<option value="">No wallets available</option>';
 
-  updateBuyWalletInfo();
-  walletSel.onchange = updateBuyWalletInfo;
+  const updateInfo = async () => {
+    const wallet = await getWallet(walletSel.value);
+    document.getElementById('buy-wallet-balance').textContent = wallet ? `Available balance: ${formatMoney(wallet.balance)}` : '';
+  };
+  await updateInfo();
+  walletSel.onchange = updateInfo;
 
   openModal('buy-modal');
   setTimeout(() => document.getElementById('buy-amount').focus(), 120);
 }
 
-function updateBuyWalletInfo() {
-  const walletId = document.getElementById('buy-wallet').value;
-  const wallet = getWallet(walletId);
-  document.getElementById('buy-wallet-balance').textContent = wallet
-    ? `Available balance: ${formatMoney(wallet.balance)}`
-    : '';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderWants();
+requireAuth(async () => {
+  await renderWants();
   setupModalClose('edit-want-modal');
   setupModalClose('buy-modal');
 
-  document.getElementById('add-want-form').addEventListener('submit', e => {
+  document.getElementById('add-want-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('want-name');
     if (!nameEl.value.trim()) {
@@ -137,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
       nameEl.addEventListener('input', () => nameEl.classList.remove('error'), { once: true });
       return;
     }
-    addWant({
+    await addWant({
       name: nameEl.value,
       price: parseFloat(document.getElementById('want-price').value) || 0,
       priority: document.getElementById('want-priority').value,
@@ -146,18 +133,18 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Want added!', 'success');
     e.target.reset();
     document.getElementById('want-priority').value = '3';
-    renderWants();
+    await renderWants();
   });
 
-  document.getElementById('wants-list').addEventListener('click', e => {
+  document.getElementById('wants-list').addEventListener('click', async e => {
     const buyBtn = e.target.closest('.buy-btn');
     const editBtn = e.target.closest('.edit-want-btn');
     const delBtn = e.target.closest('.delete-want-btn');
 
-    if (buyBtn) openBuyModal(buyBtn.dataset.id);
+    if (buyBtn) await openBuyModal(buyBtn.dataset.id);
 
     if (editBtn) {
-      const want = getWants().find(w => w.id === editBtn.dataset.id);
+      const want = cachedWants.find(w => w.id === editBtn.dataset.id);
       if (!want) return;
       document.getElementById('edit-want-id').value = want.id;
       document.getElementById('edit-want-name').value = want.name;
@@ -168,71 +155,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (delBtn) {
-      showConfirm(`Remove "${delBtn.dataset.name}" from your wants?`, 'Remove Want').then(ok => {
-        if (!ok) return;
-        deleteWant(delBtn.dataset.id);
-        showToast('Want removed', 'success');
-        renderWants();
-      });
+      const ok = await showConfirm(`Remove "${delBtn.dataset.name}" from your wants?`, 'Remove Want');
+      if (!ok) return;
+      await deleteWant(delBtn.dataset.id);
+      showToast('Want removed', 'success');
+      await renderWants();
     }
   });
 
-  document.getElementById('bought-list').addEventListener('click', e => {
+  document.getElementById('bought-list').addEventListener('click', async e => {
     const delBtn = e.target.closest('.delete-want-btn');
     if (delBtn) {
-      showConfirm(`Remove "${delBtn.dataset.name}" from history?`, 'Remove').then(ok => {
-        if (!ok) return;
-        deleteWant(delBtn.dataset.id);
-        showToast('Removed from history', 'success');
-        renderWants();
-      });
+      const ok = await showConfirm(`Remove "${delBtn.dataset.name}" from history?`, 'Remove');
+      if (!ok) return;
+      await deleteWant(delBtn.dataset.id);
+      showToast('Removed from history', 'success');
+      await renderWants();
     }
   });
 
-  document.getElementById('buy-form').addEventListener('submit', e => {
+  document.getElementById('buy-form').addEventListener('submit', async e => {
     e.preventDefault();
     const wantId = document.getElementById('buy-want-id').value;
     const walletId = document.getElementById('buy-wallet').value;
     const amount = parseFloat(document.getElementById('buy-amount').value);
-    const want = getWants().find(w => w.id === wantId);
+    const want = cachedWants.find(w => w.id === wantId);
 
     if (!walletId) { showToast('Select a wallet', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
     if (!want) { showToast('Want not found', 'error'); return; }
 
-    const wallet = getWallet(walletId);
+    const wallet = await getWallet(walletId);
     if (!wallet) { showToast('Wallet not found', 'error'); return; }
-    if (amount > wallet.balance) {
-      showToast(`Kulang ang balance! Available: ${formatMoney(wallet.balance)}`, 'error');
-      return;
-    }
+    if (amount > wallet.balance) { showToast(`Kulang ang balance! Available: ${formatMoney(wallet.balance)}`, 'error'); return; }
 
-    // Deduct from wallet + log transaction
-    addTransaction({
-      dateISO: todayISO(),
-      walletId,
-      amount,
-      place: `Bought: ${want.name}`,
-      type: 'expense'
-    });
-
-    // Mark want as bought
-    updateWant(wantId, {
-      boughtAt: new Date().toISOString(),
-      actualPrice: amount,
-      boughtFromWallet: wallet.name
-    });
+    await addTransaction({ dateISO: todayISO(), walletId, amount, place: `Bought: ${want.name}`, type: 'expense' });
+    await updateWant(wantId, { boughtAt: new Date().toISOString(), actualPrice: amount, boughtFromWallet: wallet.name });
 
     showToast(`Nabili na! "${want.name}" — ${formatMoney(amount)} deducted from ${wallet.name} 🛍️`, 'success');
     closeModal('buy-modal');
-    renderWants();
+    await renderWants();
   });
 
-  document.getElementById('edit-want-form').addEventListener('submit', e => {
+  document.getElementById('edit-want-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('edit-want-name');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); return; }
-    updateWant(document.getElementById('edit-want-id').value, {
+    await updateWant(document.getElementById('edit-want-id').value, {
       name: nameEl.value,
       price: parseFloat(document.getElementById('edit-want-price').value) || 0,
       priority: parseInt(document.getElementById('edit-want-priority').value),
@@ -240,6 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     showToast('Want updated!', 'success');
     closeModal('edit-want-modal');
-    renderWants();
+    await renderWants();
   });
 });

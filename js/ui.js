@@ -1,7 +1,8 @@
-// js/ui.js — Toast, Modal, Nav, Confirm
+// js/ui.js — Toast, Modal, Nav, Confirm (ES module)
+import { escapeHtml } from './utils.js';
 
 // ── Toast ────────────────────────────────────────────────────
-function showToast(message, type = 'success') {
+export function showToast(message, type = 'success') {
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -24,7 +25,7 @@ function showToast(message, type = 'success') {
 }
 
 // ── Confirm dialog ───────────────────────────────────────────
-function showConfirm(message, title = 'Confirm', okText = 'Delete') {
+export function showConfirm(message, title = 'Confirm', okText = 'Delete') {
   return new Promise(resolve => {
     let overlay = document.getElementById('confirm-overlay');
     if (!overlay) {
@@ -50,7 +51,6 @@ function showConfirm(message, title = 'Confirm', okText = 'Delete') {
     const ok = document.getElementById('confirm-ok');
     const cancel = document.getElementById('confirm-cancel');
     const close = () => { overlay.classList.remove('open'); };
-
     const onOk = () => { close(); ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); resolve(true); };
     const onCancel = () => { close(); ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); resolve(false); };
     ok.addEventListener('click', onOk);
@@ -59,15 +59,15 @@ function showConfirm(message, title = 'Confirm', okText = 'Delete') {
 }
 
 // ── Modal ────────────────────────────────────────────────────
-function openModal(id) {
+export function openModal(id) {
   const el = document.getElementById(id);
-  if (el) { el.classList.add('open'); }
+  if (el) el.classList.add('open');
 }
-function closeModal(id) {
+export function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('open');
 }
-function setupModalClose(modalId) {
+export function setupModalClose(modalId) {
   const overlay = document.getElementById(modalId);
   if (!overlay) return;
   overlay.addEventListener('click', e => {
@@ -79,7 +79,7 @@ function setupModalClose(modalId) {
 }
 
 // ── Navigation active state ──────────────────────────────────
-function setActiveNav() {
+export function setActiveNav() {
   const page = location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
     const href = item.getAttribute('href') || '';
@@ -91,7 +91,7 @@ function setActiveNav() {
 }
 
 // ── Form validation helper ───────────────────────────────────
-function validateField(el) {
+export function validateField(el) {
   if (!el.value.trim()) {
     el.classList.add('error');
     el.addEventListener('input', () => el.classList.remove('error'), { once: true });
@@ -100,126 +100,5 @@ function validateField(el) {
   return true;
 }
 
-// ── Export ───────────────────────────────────────────────────
-function exportData() {
-  const data = loadData();
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const date = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = `pesotracker-backup-${date}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Data exported! I-save mo yung file.', 'success');
-}
-
-// ── Logout ───────────────────────────────────────────────────
-function logout() {
-  showConfirm(
-    'Ibibigay muna ang iyong data bilang JSON file bago mag-switch ng account. Sigurado ka ba?',
-    'Switch Account / Logout',
-    'Yes, Logout'
-  ).then(ok => {
-    if (!ok) return;
-
-    // 1. Auto-export first
-    const data = loadData();
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `pesotracker-backup-${date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    // 2. Clear all storage
-    setTimeout(() => {
-      localStorage.removeItem('moneyTrackerData');
-      sessionStorage.removeItem('pesotracker_session');
-
-      // 3. Redirect to start
-      showToast('Naka-logout na! Redirecting...', 'success');
-      setTimeout(() => {
-        window.location.href = 'start.html';
-      }, 800);
-    }, 500);
-  });
-}
-
-// ── Inject sidebar/mobile UI ─────────────────────────────────
-function injectExportUI() {
-  const iconExport = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-  const iconLogout = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
-
-  // ── Sidebar (desktop) ──
-  const sidebar = document.querySelector('.sidebar-nav');
-  if (sidebar) {
-    const sidebarActions = document.createElement('div');
-    sidebarActions.style.cssText = 'padding:12px;border-top:1px solid var(--border);margin-top:16px;display:flex;flex-direction:column;gap:6px;';
-    sidebarActions.innerHTML = `
-      <button onclick="exportData()" class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px;font-size:0.82rem;">
-        ${iconExport} Export Data
-      </button>
-      <button onclick="logout()" class="btn" style="width:100%;justify-content:center;gap:8px;font-size:0.82rem;background:#ff4d6d18;color:var(--danger);border:1px solid #ff4d6d30;">
-        ${iconLogout} Switch Account
-      </button>
-    `;
-    sidebar.appendChild(sidebarActions);
-  }
-
-  // ── Mobile FAB menu ──
-  const bottomNav = document.querySelector('.bottom-nav');
-  if (bottomNav) {
-    // Export FAB
-    const fabExport = document.createElement('button');
-    fabExport.onclick = exportData;
-    fabExport.title = 'Export Data';
-    fabExport.style.cssText = `
-      position:fixed;bottom:80px;right:16px;
-      width:44px;height:44px;
-      background:var(--card2);
-      border:1px solid var(--border2);
-      border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      color:var(--accent);
-      box-shadow:var(--shadow);
-      z-index:99;
-      transition:all 0.2s;
-    `;
-    fabExport.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-    fabExport.onmouseover = () => fabExport.style.transform = 'scale(1.1)';
-    fabExport.onmouseout = () => fabExport.style.transform = 'scale(1)';
-
-    // Logout FAB
-    const fabLogout = document.createElement('button');
-    fabLogout.onclick = logout;
-    fabLogout.title = 'Switch Account';
-    fabLogout.style.cssText = `
-      position:fixed;bottom:132px;right:16px;
-      width:44px;height:44px;
-      background:#ff4d6d18;
-      border:1px solid #ff4d6d30;
-      border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      color:var(--danger);
-      box-shadow:var(--shadow);
-      z-index:99;
-      transition:all 0.2s;
-    `;
-    fabLogout.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
-    fabLogout.onmouseover = () => fabLogout.style.transform = 'scale(1.1)';
-    fabLogout.onmouseout = () => fabLogout.style.transform = 'scale(1)';
-
-    document.body.appendChild(fabExport);
-    document.body.appendChild(fabLogout);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  setActiveNav();
-  injectExportUI();
-});
+// Auto-run nav on load
+document.addEventListener('DOMContentLoaded', () => setActiveNav());

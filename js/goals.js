@@ -1,11 +1,17 @@
-// js/goals.js
-function renderGoals() {
-  const goals = getGoals();
-  const wallets = getWallets();
+// js/goals.js — Firebase version
+import { requireAuth } from './auth-guard.js';
+import { getGoals, getWallets, getWallet, addGoal, contributeToGoal, deleteGoal } from './data.js';
+import { formatMoney, escapeHtml } from './utils.js';
+import { showToast, showConfirm, openModal, closeModal, setupModalClose } from './ui.js';
+
+let cachedGoals = [];
+
+async function renderGoals() {
+  const [goals, wallets] = await Promise.all([getGoals(), getWallets()]);
+  cachedGoals = goals;
   const walletMap = Object.fromEntries(wallets.map(w => [w.id, w]));
   const container = document.getElementById('goals-list');
 
-  // Update wallet dropdown
   const walletSel = document.getElementById('goal-wallet');
   walletSel.innerHTML = wallets.length
     ? wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${formatMoney(w.balance)})</option>`).join('')
@@ -53,11 +59,11 @@ function renderGoals() {
   }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderGoals();
+requireAuth(async () => {
+  await renderGoals();
   setupModalClose('contribute-modal');
 
-  document.getElementById('add-goal-form').addEventListener('submit', e => {
+  document.getElementById('add-goal-form').addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('goal-name');
     const targetEl = document.getElementById('goal-target');
@@ -69,20 +75,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!walletId) { showToast('Select a funding wallet', 'error'); valid = false; }
     if (!valid) return;
 
-    addGoal({ name: nameEl.value, targetAmount: parseFloat(targetEl.value), fundingWalletId: walletId });
+    await addGoal({ name: nameEl.value, targetAmount: parseFloat(targetEl.value), fundingWalletId: walletId });
     showToast('Goal created!', 'success');
     e.target.reset();
-    renderGoals();
+    await renderGoals();
   });
 
-  document.getElementById('goals-list').addEventListener('click', e => {
+  document.getElementById('goals-list').addEventListener('click', async e => {
     const contBtn = e.target.closest('.contribute-btn');
     const delBtn = e.target.closest('.delete-goal-btn');
 
     if (contBtn) {
-      const goal = getGoals().find(g => g.id === contBtn.dataset.id);
+      const goal = cachedGoals.find(g => g.id === contBtn.dataset.id);
       if (!goal) return;
-      const wallet = getWallet(goal.fundingWalletId);
+      const wallet = await getWallet(goal.fundingWalletId);
       document.getElementById('contribute-goal-id').value = goal.id;
       document.getElementById('contribute-amount').value = '';
       document.getElementById('contribute-goal-info').innerHTML = `
@@ -97,27 +103,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (delBtn) {
-      showConfirm(`Delete goal "${delBtn.dataset.name}"? Saved amounts are NOT refunded to the wallet.`, 'Delete Goal').then(ok => {
-        if (!ok) return;
-        deleteGoal(delBtn.dataset.id);
-        showToast('Goal deleted', 'success');
-        renderGoals();
-      });
+      const ok = await showConfirm(`Delete goal "${delBtn.dataset.name}"? Saved amounts are NOT refunded to the wallet.`, 'Delete Goal');
+      if (!ok) return;
+      await deleteGoal(delBtn.dataset.id);
+      showToast('Goal deleted', 'success');
+      await renderGoals();
     }
   });
 
-  document.getElementById('contribute-form').addEventListener('submit', e => {
+  document.getElementById('contribute-form').addEventListener('submit', async e => {
     e.preventDefault();
     const goalId = document.getElementById('contribute-goal-id').value;
     const amount = parseFloat(document.getElementById('contribute-amount').value);
     if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
 
-    const result = contributeToGoal(goalId, amount);
+    const result = await contributeToGoal(goalId, amount);
     if (result.error) { showToast(result.error, 'error'); return; }
 
     const capped = result.amount < amount;
     showToast(capped ? `Saved ${formatMoney(result.amount)} (capped to remaining target)` : `Saved ${formatMoney(result.amount)}!`, 'success');
     closeModal('contribute-modal');
-    renderGoals();
+    await renderGoals();
   });
 });
