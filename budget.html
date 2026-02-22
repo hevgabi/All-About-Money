@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Budget — Money Tracker</title>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-text">₱ PesoTracker</div><div class="logo-sub">Personal Finance</div></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="nav-label">Dashboard</span></a>
+      <a href="wallets.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="3"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg><span class="nav-label">Wallets</span></a>
+      <a href="transactions.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="nav-label">Transactions</span></a>
+      <a href="reports.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Reports</span></a>
+      <a href="wants.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="nav-label">Wants</span></a>
+      <a href="budget.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label">Budget</span></a>
+      <a href="goals.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="nav-label">Goals (Ipon)</span></a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div class="page-title">Budget Builder</div>
+      <div class="page-sub">Plan your weekly and monthly budget</div>
+    </div>
+    <div class="page-body">
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-weekly" onclick="switchBudgetTab('weekly')">Weekly</button>
+        <button class="tab-btn" id="tab-monthly" onclick="switchBudgetTab('monthly')">Monthly</button>
+      </div>
+
+      <!-- Weekly Budget -->
+      <div id="weekly-budget">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="section-title">Weekly Allowance</div>
+          <div class="form-group">
+            <label class="form-label">Weekly Allowance (₱)</label>
+            <input type="number" class="form-control" id="weekly-allowance" placeholder="0.00" min="0" step="0.01" style="max-width:280px"/>
+          </div>
+          <button class="btn btn-primary" onclick="saveWeeklyAllowance()">Save Allowance</button>
+        </div>
+
+        <div class="budget-summary" id="weekly-summary"></div>
+
+        <div class="card">
+          <div class="section-title">Fixed Weekly Expenses</div>
+          <form id="add-weekly-expense-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Expense Name</label>
+                <input type="text" class="form-control" id="weekly-exp-name" placeholder="e.g. Transpo, Load"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount (₱)</label>
+                <input type="number" class="form-control" id="weekly-exp-amount" placeholder="0.00" min="0" step="0.01"/>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-secondary">Add Expense</button>
+          </form>
+          <div id="weekly-expenses-list" style="margin-top:16px;"></div>
+        </div>
+      </div>
+
+      <!-- Monthly Budget -->
+      <div id="monthly-budget" style="display:none">
+        <div class="budget-summary" id="monthly-summary"></div>
+        <div class="card">
+          <div class="section-title">Fixed Monthly Expenses</div>
+          <form id="add-monthly-expense-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Expense Name</label>
+                <input type="text" class="form-control" id="monthly-exp-name" placeholder="e.g. Netflix, Internet"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount (₱)</label>
+                <input type="number" class="form-control" id="monthly-exp-amount" placeholder="0.00" min="0" step="0.01"/>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-secondary">Add Expense</button>
+          </form>
+          <div id="monthly-expenses-list" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Home</span></a>
+    <a href="wallets.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="3"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg><span>Wallets</span></a>
+    <a href="transactions.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span>Txns</span></a>
+    <a href="reports.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Reports</span></a>
+    <a href="goals.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>Goals</span></a>
+  </nav>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/budget.js"></script>
+</body>
+</html>
