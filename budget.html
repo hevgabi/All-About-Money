@@ -30,6 +30,7 @@
       <div class="tabs">
         <button class="tab-btn active" id="tab-weekly" onclick="switchBudgetTab('weekly')">Weekly</button>
         <button class="tab-btn" id="tab-monthly" onclick="switchBudgetTab('monthly')">Monthly</button>
+        <button class="tab-btn" id="tab-paylater" onclick="switchBudgetTab('paylater')">PayLater 💳</button>
       </div>
 
       <!-- Weekly Budget -->
@@ -85,10 +86,81 @@
           <div id="monthly-expenses-list" style="margin-top:16px;"></div>
         </div>
       </div>
+      <!-- PayLater / Installments -->
+      <div id="paylater-budget" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">PayLater / Installments</div>
+            <div style="font-size:0.8rem;color:var(--text2);margin-top:2px">Track your Shopee/TikTok PayLater or any installment payments</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('inst-add-modal')" style="gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Item
+          </button>
+        </div>
+        <div class="inst-grid" id="inst-list"></div>
+      </div>
+
     </div>
   </main>
 
-  <nav class="bottom-nav">
+  <!-- Add Installment Modal -->
+  <div class="modal-overlay" id="inst-add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Add PayLater Item 💳</div>
+        <button class="modal-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <form id="add-inst-form">
+        <div class="form-group">
+          <label class="form-label">Item Name</label>
+          <input type="text" class="form-control" id="inst-name" placeholder="e.g. Laptop, Phone, Shopee PayLater"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Monthly Payment (₱)</label>
+            <input type="number" class="form-control" id="inst-monthly-amt" placeholder="0.00" min="0.01" step="0.01"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Months</label>
+            <input type="number" class="form-control" id="inst-months" placeholder="e.g. 12" min="1" step="1" value="12"/>
+          </div>
+        </div>
+        <div id="inst-total-preview" style="font-size:0.8rem;color:var(--accent);margin-bottom:16px;min-height:1.2em"></div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('inst-add-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Installment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pay Installment Modal -->
+  <div class="modal-overlay" id="inst-pay-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Make Payment 💳</div>
+        <button class="modal-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <form id="inst-pay-form">
+        <input type="hidden" id="inst-pay-id"/>
+        <div id="inst-pay-info" style="margin-bottom:16px;padding:14px;background:var(--bg3);border-radius:var(--radius2)"></div>
+        <div class="form-group">
+          <label class="form-label">Pay from Wallet</label>
+          <select class="form-control" id="inst-pay-wallet"></select>
+          <div id="inst-pay-bal" style="font-size:0.78rem;color:var(--text3);margin-top:5px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₱)</label>
+          <input type="number" class="form-control" id="inst-pay-amount" placeholder="0.00" min="0.01" step="0.01"/>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('inst-pay-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
     <a href="index.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Home</span></a>
     <a href="wallets.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="3"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg><span>Wallets</span></a>
     <a href="transactions.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span>Txns</span></a>
@@ -102,6 +174,7 @@
 <script src="js/utils.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/budget.js"></script>
+<script src="js/installments.js"></script>
 <script type="module" src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
 </body>
