@@ -930,3 +930,172 @@ tr:hover td { background: var(--bg3); }
   text-align: center;
   display: none;
 }
+/* ══════════════════════════════════════════════════════════════
+   PATCH 1: Hamburger / Drawer Menu (mobile)
+   ══════════════════════════════════════════════════════════════ */
+.hamburger-btn {
+  display: none;
+  position: fixed;
+  top: 13px; left: 13px;
+  z-index: 201;
+  width: 42px; height: 42px;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  align-items: center; justify-content: center;
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow);
+}
+.hamburger-btn:hover { background: var(--card); border-color: var(--accent); color: var(--accent); }
+
+.drawer-overlay {
+  position: fixed; inset: 0;
+  background: #00000088;
+  backdrop-filter: blur(3px);
+  z-index: 199;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+.drawer-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 260px; height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border2);
+  z-index: 200;
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+}
+.drawer-sidebar.open { transform: translateX(0); }
+
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.drawer-logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); letter-spacing: -0.5px; }
+.drawer-logo-sub { font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.drawer-close-btn {
+  width: 30px; height: 30px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); cursor: pointer;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.drawer-close-btn:hover { color: var(--text); border-color: var(--border2); }
+
+.drawer-nav {
+  flex: 1; padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.drawer-nav .nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: var(--radius2);
+  color: var(--text2); font-size: 0.88rem; font-weight: 500;
+  transition: all var(--transition);
+}
+.drawer-nav .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+.drawer-nav .nav-item:hover { background: var(--card); color: var(--text); }
+.drawer-nav .nav-item.active { background: #00F5C418; color: var(--accent); }
+.drawer-nav .nav-item.active svg { stroke: var(--accent); }
+
+.drawer-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn { display: flex; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PATCH 2: PayLater / Installment styles
+   ══════════════════════════════════════════════════════════════ */
+.inst-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.inst-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  transition: all var(--transition);
+  overflow: hidden;
+}
+.inst-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border2); }
+.inst-card.done { border-color: #00F5C430; background: linear-gradient(135deg, var(--card), #0d1e18); }
+.inst-done-badge {
+  position: absolute; top: 12px; right: 12px;
+  background: #00F5C420; color: var(--accent);
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em;
+  padding: 3px 9px; border-radius: 100px;
+  border: 1px solid #00F5C440;
+}
+.inst-name {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+  margin-bottom: 3px; padding-right: 64px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.inst-meta { font-size: 0.76rem; color: var(--text2); margin-bottom: 14px; }
+.inst-amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.inst-amt-label { font-size: 0.67rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+.inst-amt-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.92rem; margin-top: 2px; }
+.inst-progress-bar {
+  height: 6px; background: var(--bg3); border-radius: 100px; margin-bottom: 14px; overflow: hidden;
+}
+.inst-progress-fill {
+  height: 100%; background: var(--accent); border-radius: 100px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+.inst-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 480px) { .inst-grid { grid-template-columns: 1fr; } }
+
+@media (min-width: 769px) {
+  :root { --sidebar-w: 220px; } /* keep your default sidebar width */
+
+  .sidebar { 
+    display: flex !important; 
+    transform: none !important;
+  }
+
+  .bottom-nav { 
+    display: none !important; 
+  }
+
+  .hamburger-btn { 
+    display: none !important; 
+  }
+
+  .drawer-overlay,
+  .drawer-sidebar {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: var(--sidebar-w) !important;
+    padding-bottom: 40px; /* remove mobile bottom spacing */
+  }
+}
+
+/* Optional: FORCE MOBILE RULES stronger */
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .bottom-nav { display: flex !important; }
+  .main-content { margin-left: 0 !important; padding-bottom: 62px; }
+}

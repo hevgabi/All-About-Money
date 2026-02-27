@@ -22,6 +22,7 @@ async function renderDashboard() {
 
   let weekExp = 0, monthExp = 0, weekInc = 0, todayExp = 0;
   txns.forEach(t => {
+    if (t.type === 'transfer') return; // transfers never affect income/expense totals
     if (t.dateISO === today && t.type === 'expense') todayExp += t.amount;
     if (isInRange(t.dateISO, week.start, week.end)) {
       if (t.type === 'expense') weekExp += t.amount; else weekInc += t.amount;

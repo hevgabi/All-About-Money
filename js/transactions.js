@@ -5,17 +5,34 @@ let currentFilter = 'today';
 let customDate  = null;
 let _cachedTxns = [];
 
+// ── Type toggle helpers ────────────────────────────────────────
 function setTxType(type) {
   txType = type;
-  document.getElementById('tx-expense-btn').className = type === 'expense' ? 'active-expense' : '';
-  document.getElementById('tx-income-btn').className  = type === 'income'  ? 'active-income'  : '';
-}
-function setEditTxType(type) {
-  editTxType = type;
-  document.getElementById('edit-expense-btn').className = type === 'expense' ? 'active-expense' : '';
-  document.getElementById('edit-income-btn').className  = type === 'income'  ? 'active-income'  : '';
+  document.getElementById('tx-expense-btn').className  = type === 'expense'  ? 'active-expense'  : '';
+  document.getElementById('tx-income-btn').className   = type === 'income'   ? 'active-income'   : '';
+  document.getElementById('tx-transfer-btn').className = type === 'transfer' ? 'active-transfer'  : '';
+
+  const transferRow = document.getElementById('tx-transfer-row');
+  if (transferRow) transferRow.style.display = type === 'transfer' ? '' : 'none';
+
+  const walletLabel = document.getElementById('tx-wallet-label');
+  if (walletLabel) walletLabel.textContent = type === 'transfer' ? 'From Wallet' : 'Wallet';
 }
 
+function setEditTxType(type) {
+  editTxType = type;
+  document.getElementById('edit-expense-btn').className  = type === 'expense'  ? 'active-expense'  : '';
+  document.getElementById('edit-income-btn').className   = type === 'income'   ? 'active-income'   : '';
+  document.getElementById('edit-transfer-btn').className = type === 'transfer' ? 'active-transfer'  : '';
+
+  const editTransferRow = document.getElementById('edit-tx-transfer-row');
+  if (editTransferRow) editTransferRow.style.display = type === 'transfer' ? '' : 'none';
+
+  const editWalletLabel = document.getElementById('edit-tx-wallet-label');
+  if (editWalletLabel) editWalletLabel.textContent = type === 'transfer' ? 'From Wallet' : 'Wallet';
+}
+
+// ── Filter helpers ─────────────────────────────────────────────
 function setFilter(f) {
   currentFilter = f;
   customDate    = null;
@@ -26,14 +43,17 @@ function setFilter(f) {
   renderTxList();
 }
 
+// ── Wallet dropdown populate ───────────────────────────────────
 async function populateWalletDropdown(selectId, selectedId) {
   const wallets = await getWallets();
   const sel = document.getElementById(selectId);
+  if (!sel) return;
   sel.innerHTML = wallets.length
     ? wallets.map(w => `<option value="${w.id}" ${w.id === selectedId ? 'selected' : ''}>${escapeHtml(w.name)}</option>`).join('')
     : '<option value="">No wallets</option>';
 }
 
+// ── Render transaction list ────────────────────────────────────
 async function renderTxList() {
   const [allTxns, wallets] = await Promise.all([getTransactions(), getWallets()]);
   _cachedTxns = allTxns;
@@ -46,8 +66,12 @@ async function renderTxList() {
   else if (currentFilter === 'month') { const r = getThisMonthRange(); txns = txns.filter(t => isInRange(t.dateISO, r.start, r.end)); }
   txns = txns.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
 
+  // Summary: transfers excluded (internal moves)
   let totalExp = 0, totalInc = 0;
-  txns.forEach(t => { if (t.type === 'expense') totalExp += t.amount; else totalInc += t.amount; });
+  txns.forEach(t => {
+    if (t.type === 'expense') totalExp += t.amount;
+    else if (t.type === 'income') totalInc += t.amount;
+  });
 
   document.getElementById('tx-summary').innerHTML = `
     <div class="card card-sm" style="flex:1;min-width:140px"><div class="card-label">Income</div><div class="card-value" style="color:var(--accent);font-size:1.1rem">${formatMoney(totalInc)}</div></div>
@@ -64,12 +88,26 @@ async function renderTxList() {
     return;
   }
 
+  function walletDisplay(t) {
+    if (t.type === 'transfer') {
+      const from = escapeHtml(walletMap[t.walletId] || 'Unknown');
+      const to   = escapeHtml(walletMap[t.toWalletId] || 'Unknown');
+      return `<span style="font-size:0.78rem">${from} <span style="color:var(--transfer,#a78bfa)">→</span> ${to}</span>`;
+    }
+    return escapeHtml(walletMap[t.walletId] || 'Unknown');
+  }
+
+  function amountDisplay(t) {
+    if (t.type === 'transfer') return `<span class="td-transfer">↔ ${formatMoney(t.amount)}</span>`;
+    return `<span class="${t.type}">${t.type==='expense'?'-':'+'}${formatMoney(t.amount)}</span>`;
+  }
+
   document.getElementById('tx-tbody').innerHTML = txns.map(t => `
     <tr>
       <td>${formatDate(t.dateISO)}</td>
-      <td>${escapeHtml(walletMap[t.walletId] || 'Unknown')}</td>
+      <td>${walletDisplay(t)}</td>
       <td><span class="badge badge-${t.type}">${t.type}</span></td>
-      <td class="td-amount ${t.type}">${t.type==='expense'?'-':'+'}${formatMoney(t.amount)}</td>
+      <td class="td-amount">${amountDisplay(t)}</td>
       <td>${escapeHtml(t.place)}</td>
       <td><div style="display:flex;gap:6px">
         <button class="btn btn-icon btn-sm edit-tx-btn" data-id="${t.id}" title="Edit">${iconEdit}</button>
@@ -78,29 +116,53 @@ async function renderTxList() {
     </tr>
   `).join('');
 
-  document.getElementById('tx-cards').innerHTML = txns.map(t => `
+  // Separate transfers from income/expense for mobile cards
+  const incomExpTxns = txns.filter(t => t.type !== 'transfer');
+  const transferTxns = txns.filter(t => t.type === 'transfer');
+
+  function buildCard(t) {
+    return `
     <div class="tx-card">
       <div class="tx-card-header">
         <div class="tx-card-place">${escapeHtml(t.place)}</div>
-        <div class="tx-card-amount ${t.type}">${t.type==='expense'?'-':'+'}${formatMoney(t.amount)}</div>
+        <div class="tx-card-amount">${amountDisplay(t)}</div>
       </div>
       <div class="tx-card-meta">
         <span class="badge badge-${t.type}">${t.type}</span>
-        <span style="color:var(--text2);font-size:0.8rem">${escapeHtml(walletMap[t.walletId]||'Unknown')}</span>
+        <span style="color:var(--text2);font-size:0.8rem">${walletDisplay(t)}</span>
         <span style="color:var(--text3);font-size:0.8rem">${formatDate(t.dateISO)}</span>
       </div>
       <div class="tx-card-actions">
         <button class="btn btn-secondary btn-sm edit-tx-btn" data-id="${t.id}">${iconEdit} Edit</button>
         <button class="btn btn-danger btn-sm delete-tx-btn" data-id="${t.id}" data-place="${escapeHtml(t.place)}">${iconDel} Delete</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }
+
+  let cardsHtml = incomExpTxns.map(buildCard).join('');
+
+  if (transferTxns.length > 0) {
+    cardsHtml += `
+      <div style="margin-top:20px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--transfer,#a78bfa);letter-spacing:0.08em;text-transform:uppercase;">
+        — Transfers —
+      </div>
+      ${transferTxns.map(buildCard).join('')}
+    `;
+  }
+
+  document.getElementById('tx-cards').innerHTML = cardsHtml;
 }
 
-// ✅ Wire up form listeners on DOM ready
+// ── Wire up form listeners on DOM ready ────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tx-date').value = todayISO();
   setupModalClose('edit-tx-modal');
+
+  // Hide transfer destination row by default
+  const transferRow = document.getElementById('tx-transfer-row');
+  if (transferRow) transferRow.style.display = 'none';
+  const editTransferRow = document.getElementById('edit-tx-transfer-row');
+  if (editTransferRow) editTransferRow.style.display = 'none';
 
   document.getElementById('filter-date').addEventListener('change', e => {
     if (!e.target.value) return;
@@ -109,25 +171,36 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTxList();
   });
 
+  // ── Add transaction form ──
   document.getElementById('add-tx-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const date     = document.getElementById('tx-date').value;
-    const walletId = document.getElementById('tx-wallet').value;
-    const amount   = parseFloat(document.getElementById('tx-amount').value);
-    const place    = document.getElementById('tx-place').value;
+    const date   = document.getElementById('tx-date').value;
+    const amount = parseFloat(document.getElementById('tx-amount').value);
+    const place  = document.getElementById('tx-place').value;
 
     if (!date)               { showToast('Select a date', 'error'); return; }
-    if (!walletId)           { showToast('Select a wallet', 'error'); return; }
     if (!amount || amount<=0){ showToast('Enter a valid amount', 'error'); return; }
-    if (!place.trim())       { showToast('Enter a description', 'error'); return; }
 
-    await addTransaction({ dateISO: date, walletId, amount, place, type: txType });
-    showToast('Transaction added!', 'success');
+    if (txType === 'transfer') {
+      const fromWalletId = document.getElementById('tx-wallet').value;
+      const toWalletId   = document.getElementById('tx-to-wallet').value;
+      const result = await addTransferTransaction({ dateISO: date, fromWalletId, toWalletId, amount, note: place });
+      if (result.error) { showToast(result.error, 'error'); return; }
+      showToast('Transfer completed!', 'success');
+    } else {
+      const walletId = document.getElementById('tx-wallet').value;
+      if (!walletId)         { showToast('Select a wallet', 'error'); return; }
+      if (!place.trim())     { showToast('Enter a description', 'error'); return; }
+      await addTransaction({ dateISO: date, walletId, amount, place, type: txType });
+      showToast('Transaction added!', 'success');
+    }
+
     document.getElementById('tx-amount').value = '';
     document.getElementById('tx-place').value  = '';
     await renderTxList();
   });
 
+  // ── Edit / Delete delegation ──
   async function handleTxAction(e) {
     const editBtn = e.target.closest('.edit-tx-btn');
     const delBtn  = e.target.closest('.delete-tx-btn');
@@ -140,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('edit-tx-amount').value = tx.amount;
       document.getElementById('edit-tx-place').value  = tx.place;
       await populateWalletDropdown('edit-tx-wallet', tx.walletId);
+      await populateWalletDropdown('edit-tx-to-wallet', tx.toWalletId || null);
       setEditTxType(tx.type);
       openModal('edit-tx-modal');
     }
@@ -156,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tx-tbody').addEventListener('click', handleTxAction);
   document.getElementById('tx-cards').addEventListener('click', handleTxAction);
 
+  // ── Edit transaction form ──
   document.getElementById('edit-tx-form').addEventListener('submit', async e => {
     e.preventDefault();
     const id       = document.getElementById('edit-tx-id').value;
@@ -167,15 +242,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!amount || amount<=0){ showToast('Enter a valid amount', 'error'); return; }
     if (!place.trim())       { showToast('Enter a description', 'error'); return; }
 
-    await updateTransaction(id, { dateISO, walletId, amount, place, type: editTxType });
+    if (editTxType === 'transfer') {
+      const toWalletId = document.getElementById('edit-tx-to-wallet').value;
+      if (walletId === toWalletId) { showToast('Source and destination wallets must be different.', 'error'); return; }
+      await updateTransaction(id, { dateISO, walletId, toWalletId, amount, place, type: 'transfer' });
+    } else {
+      await updateTransaction(id, { dateISO, walletId, amount, place, type: editTxType });
+    }
+
     showToast('Transaction updated!', 'success');
     closeModal('edit-tx-modal');
     await renderTxList();
   });
 });
 
-// ✅ Render only after auth is confirmed
+// ── Render only after auth is confirmed ───────────────────────
 window.onAuthReady = async function () {
   await populateWalletDropdown('tx-wallet', null);
+  await populateWalletDropdown('tx-to-wallet', null);
   await renderTxList();
 };

@@ -18,6 +18,7 @@ async function renderWeeklyReport() {
   let totalExp = 0, totalInc = 0;
   const byWallet = {};
   txns.forEach(t => {
+    if (t.type === 'transfer') return; // transfers never affect income/expense totals
     if (t.type === 'expense') totalExp += t.amount; else totalInc += t.amount;
     if (!byWallet[t.walletId]) byWallet[t.walletId] = { exp: 0, inc: 0 };
     if (t.type === 'expense') byWallet[t.walletId].exp += t.amount; else byWallet[t.walletId].inc += t.amount;
@@ -28,7 +29,7 @@ async function renderWeeklyReport() {
     <div class="report-card"><div class="card-label">Total Expenses</div><div class="report-card-val negative">${formatMoney(totalExp)}</div></div>
     <div class="report-card"><div class="card-label">Total Income</div><div class="report-card-val positive">${formatMoney(totalInc)}</div></div>
     <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net>=0?'positive':'negative'}">${formatMoney(net)}</div></div>
-    <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.length}</div></div>
+    <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.filter(t => t.type !== 'transfer').length}</div></div>
   `;
 
   const breakdownHtml = Object.entries(byWallet).map(([wid, d]) => `
@@ -56,6 +57,7 @@ async function renderMonthlyReport() {
   let totalExp = 0, totalInc = 0;
   const byDay = {};
   txns.forEach(t => {
+    if (t.type === 'transfer') return; // transfers never affect income/expense totals
     if (t.type === 'expense') totalExp += t.amount; else totalInc += t.amount;
     if (!byDay[t.dateISO]) byDay[t.dateISO] = { exp: 0, inc: 0 };
     if (t.type === 'expense') byDay[t.dateISO].exp += t.amount; else byDay[t.dateISO].inc += t.amount;
@@ -66,7 +68,7 @@ async function renderMonthlyReport() {
     <div class="report-card"><div class="card-label">Total Expenses</div><div class="report-card-val negative">${formatMoney(totalExp)}</div></div>
     <div class="report-card"><div class="card-label">Total Income</div><div class="report-card-val positive">${formatMoney(totalInc)}</div></div>
     <div class="report-card"><div class="card-label">Net</div><div class="report-card-val ${net>=0?'positive':'negative'}">${formatMoney(net)}</div></div>
-    <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.length}</div></div>
+    <div class="report-card"><div class="card-label">Transactions</div><div class="report-card-val">${txns.filter(t => t.type !== 'transfer').length}</div></div>
   `;
 
   const sortedDays = Object.keys(byDay).sort().reverse();

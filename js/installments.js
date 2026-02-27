@@ -36,7 +36,7 @@ async function renderInstallments() {
         </div>
         <div>
           <div class="inst-amt-label">Remaining</div>
-          <div class="inst-amt-val" style="color:${done ? 'var(--text3)' : 'var(--danger)'}">${formatMoney(remain)}</div>
+          <div class="inst-amt-val" style="color:${done ? 'var(--text3)' : 'var(--danger)'}">` + formatMoney(remain) + `</div>
         </div>
         <div>
           <div class="inst-amt-label">Weekly Suggested</div>
@@ -90,7 +90,6 @@ async function openInstPayModal(instId) {
 
 function updateInstWalletInfo() {
   const walletId = document.getElementById('inst-pay-wallet').value;
-  // We can't easily await here in onchange, so just show placeholder
   getWallet(walletId).then(w => {
     const el = document.getElementById('inst-pay-bal');
     if (el) el.textContent = w ? `Balance: ${formatMoney(w.balance)}` : '';
@@ -103,8 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setupModalClose('inst-add-modal');
 
   // Add installment form
+  // PATCH: mark form as __instBound so the inline fallback in budget.html does NOT double-bind
   const addForm = document.getElementById('add-inst-form');
   if (addForm) {
+    addForm.__bound = true;  // ← prevents inline fallback from rebinding
     addForm.addEventListener('submit', async e => {
       e.preventDefault();
       const nameEl = document.getElementById('inst-name');
@@ -114,11 +115,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!nameEl.value.trim()) { nameEl.classList.add('error'); nameEl.addEventListener('input', () => nameEl.classList.remove('error'), {once:true}); return; }
       if (!moAmt.value || Number(moAmt.value) <= 0) { moAmt.classList.add('error'); moAmt.addEventListener('input', () => moAmt.classList.remove('error'), {once:true}); return; }
 
+      // PATCH: pass wantId if present (set by wants → PayLater flow)
+      const wantId = addForm.dataset.wantId || undefined;
       await addInstallment({
         name: nameEl.value,
         monthlyAmount: moAmt.value,
-        months: mos.value || 1
+        months: mos.value || 1,
+        wantId
       });
+      // Clean up wantId after use
+      delete addForm.dataset.wantId;
+
       showToast('Installment added!', 'success');
       closeModal('inst-add-modal');
       addForm.reset();
@@ -131,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mo  = parseFloat(document.getElementById('inst-monthly-amt').value) || 0;
         const mos = parseFloat(document.getElementById('inst-months').value) || 1;
         const totalEl = document.getElementById('inst-total-preview');
-        if (totalEl) totalEl.textContent = `Total: ${formatMoney(mo * mos)} &bull; Weekly: ${formatMoney(mo / 4)}`;
+        if (totalEl) totalEl.innerHTML = `Total: ${formatMoney(mo * mos)} &bull; Weekly: ${formatMoney(mo / 4)}`;
       });
     });
   }

@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch }
+import { getFirestore, collection, doc, getDoc, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch }
   from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -46,14 +46,14 @@ function budgetDocRef() {
   return doc(db, 'users', getCurrentUserId(), 'meta', 'budgets');
 }
 async function colToArray(colName) {
-  const snap = await getDocs(userCol(colName));
+  const snap = await getDocsFromServer(userCol(colName));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ── Expose Firestore ops globally so data.js can call them ───
 window._fb = {
   uid, userCol, userDoc, budgetDocRef, colToArray,
-  getDoc, setDoc, updateDoc, deleteDoc, writeBatch, db,
+  getDoc, setDoc, updateDoc, deleteDoc, writeBatch, getDocsFromServer, db,
   auth
 };
 

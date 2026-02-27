@@ -2,8 +2,10 @@
 function switchBudgetTab(tab) {
   document.getElementById('tab-weekly').classList.toggle('active', tab === 'weekly');
   document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
-  document.getElementById('weekly-budget').style.display  = tab === 'weekly'  ? '' : 'none';
-  document.getElementById('monthly-budget').style.display = tab === 'monthly' ? '' : 'none';
+  document.getElementById('tab-paylater').classList.toggle('active', tab === 'paylater');
+  document.getElementById('weekly-budget').style.display   = tab === 'weekly'   ? '' : 'none';
+  document.getElementById('monthly-budget').style.display  = tab === 'monthly'  ? '' : 'none';
+  document.getElementById('paylater-budget').style.display = tab === 'paylater' ? '' : 'none';
 }
 
 function renderExpensesList(expenses, containerId, type) {
@@ -35,7 +37,7 @@ async function renderWeeklySummary() {
   document.getElementById('weekly-summary').innerHTML = `
     <div class="budget-sum-item"><div class="budget-sum-label">Allowance</div><div class="budget-sum-value" style="color:var(--accent)">${formatMoney(allowance)}</div></div>
     <div class="budget-sum-item"><div class="budget-sum-label">Fixed Expenses</div><div class="budget-sum-value" style="color:var(--danger)">${formatMoney(totalFixed)}</div></div>
-    <div class="budget-sum-item"><div class="budget-sum-label">Savings / Extra</div><div class="budget-sum-value" style="color:${remaining>=0?'var(--accent)':'var(--danger)'}">${formatMoney(remaining)}</div></div>
+    <div class="budget-sum-item"><div class="budget-sum-label">Savings / Extra</div><div class="budget-sum-value" style="color:${remaining>=0?'var(--accent)':'var(--danger)'}">` + formatMoney(remaining) + `</div></div>
   `;
   renderExpensesList(exps, 'weekly-expenses-list', 'weekly');
 }
@@ -48,7 +50,7 @@ async function renderMonthlySummary() {
   document.getElementById('monthly-summary').innerHTML = `
     <div class="budget-sum-item"><div class="budget-sum-label">Monthly Fixed</div><div class="budget-sum-value" style="color:var(--danger)">${formatMoney(totalFixed)}</div></div>
     <div class="budget-sum-item"><div class="budget-sum-label">Items</div><div class="budget-sum-value">${exps.length}</div></div>
-    <div class="budget-sum-item"><div class="budget-sum-label">Avg / Week</div><div class="budget-sum-value" style="color:var(--text2)">${formatMoney(totalFixed/4)}</div></div>
+    <div class="budget-sum-item"><div class="budget-sum-label">Avg / Week</div><div class="budget-sum-value" style="color:var(--text2)">` + formatMoney(totalFixed/4) + `</div></div>
   `;
   renderExpensesList(exps, 'monthly-expenses-list', 'monthly');
 }
@@ -115,8 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ✅ Render only after auth is confirmed
-window.onAuthReady = async function () {
-  await renderWeeklySummary();
-  await renderMonthlySummary();
-};
+// PATCH: use safe chaining for onAuthReady so this page doesn't stomp wants.js or other page scripts.
+// On budget.html, wants.js is NOT loaded, so this is effectively the only setter here.
+// But the pattern is safe regardless.
+window.onAuthReady = (function (_prev) {
+  return async function (user) {
+    if (typeof _prev === 'function') await _prev(user);
+    await renderWeeklySummary();
+    await renderMonthlySummary();
+    if (typeof window._renderInstallments === 'function') {
+      await window._renderInstallments();
+    }
+  };
+})(window.onAuthReady);

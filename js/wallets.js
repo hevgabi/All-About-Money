@@ -12,7 +12,7 @@ async function renderWallets() {
         <div class="wallet-name">${escapeHtml(w.name)}</div>
         <div class="wallet-balance">${formatMoney(w.balance)}</div>
         <div class="wallet-actions">
-          <button class="btn btn-secondary btn-sm edit-btn" data-id="${w.id}" data-name="${escapeHtml(w.name)}">
+          <button class="btn btn-secondary btn-sm edit-btn" data-id="${w.id}" data-name="${escapeHtml(w.name)}" data-balance="${w.balance}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit
           </button>
@@ -63,8 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteBtn = e.target.closest('.delete-btn');
 
     if (editBtn) {
-      document.getElementById('edit-wallet-id').value   = editBtn.dataset.id;
-      document.getElementById('edit-wallet-name').value = editBtn.dataset.name;
+      document.getElementById('edit-wallet-id').value      = editBtn.dataset.id;
+      document.getElementById('edit-wallet-name').value    = editBtn.dataset.name;
+      document.getElementById('edit-wallet-balance').value = editBtn.dataset.balance;
       openModal('edit-wallet-modal');
     }
 
@@ -83,15 +84,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('edit-wallet-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const id     = document.getElementById('edit-wallet-id').value;
-    const nameEl = document.getElementById('edit-wallet-name');
+    const id         = document.getElementById('edit-wallet-id').value;
+    const nameEl     = document.getElementById('edit-wallet-name');
+    const balEl      = document.getElementById('edit-wallet-balance');
     if (!nameEl.value.trim()) { nameEl.classList.add('error'); return; }
+    const newBalance = parseFloat(balEl.value);
+    if (isNaN(newBalance)) { showToast('Enter a valid balance', 'error'); return; }
     try {
-      await updateWallet(id, { name: nameEl.value });
+      await updateWallet(id, { name: nameEl.value, balance: newBalance });
       showToast('Wallet updated!', 'success');
       closeModal('edit-wallet-modal');
-      await renderWallets();
+
+      // Directly patch the DOM card so UI reflects change immediately
+      // regardless of Firestore cache — no need to re-fetch
+      const card = document.querySelector(`.wallet-card[data-id="${id}"]`);
+      if (card) {
+        card.querySelector('.wallet-name').textContent    = nameEl.value.trim();
+        card.querySelector('.wallet-balance').textContent = formatMoney(newBalance);
+        const editBtn = card.querySelector('.edit-btn');
+        editBtn.dataset.name    = nameEl.value.trim();
+        editBtn.dataset.balance = newBalance;
+      }
+
+      // Also do a full re-render in background to sync any other stale state
+      renderWallets();
     } catch (err) {
+      console.error('[wallets] updateWallet error:', err);
       showToast('Error updating wallet: ' + err.message, 'error');
     }
   });

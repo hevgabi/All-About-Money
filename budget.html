@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Budget — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="css/patch.css"/>
 </head>
 <body>
 <div class="app-layout">
@@ -86,6 +87,7 @@
           <div id="monthly-expenses-list" style="margin-top:16px;"></div>
         </div>
       </div>
+
       <!-- PayLater / Installments -->
       <div id="paylater-budget" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -161,12 +163,16 @@
       </form>
     </div>
   </div>
+
+  <!-- Bottom Nav (Mobile) -->
+  <nav class="bottom-nav">
     <a href="index.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Home</span></a>
     <a href="wallets.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="3"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg><span>Wallets</span></a>
     <a href="transactions.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span>Txns</span></a>
     <a href="reports.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Reports</span></a>
     <a href="goals.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>Goals</span></a>
   </nav>
+
 </div>
 
 <div id="toast-container"></div>
@@ -177,5 +183,7 @@
 <script src="js/installments.js"></script>
 <script type="module" src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
+<!-- PATCH: Removed the broken inline fallback script that was causing double form binding on #add-inst-form.
+     installments.js now handles all binding and sets form.__bound = true to prevent any stray rebind. -->
 </body>
 </html>

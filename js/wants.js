@@ -18,9 +18,11 @@ function renderActiveWants(wants) {
     container.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><p>Wala pang wants. Magdagdag ng gusto mong bilhin!</p></div>`;
     return;
   }
-  const iconEdit  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  const iconDel   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
-  const iconCheck = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>`;
+  const iconEdit   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const iconDel    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>`;
+  const iconCheck  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>`;
+  // PATCH: PayLater convert icon
+  const iconCard   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>`;
 
   container.innerHTML = wants.map(w => `
     <div class="want-item" data-id="${w.id}">
@@ -32,6 +34,7 @@ function renderActiveWants(wants) {
       <div class="want-price">${formatMoney(w.price)}</div>
       <div class="want-actions">
         <button class="btn btn-sm buy-btn" data-id="${w.id}" title="Nabili na!" style="background:#00F5C422;color:var(--accent);border:1px solid #00F5C433;gap:5px">${iconCheck} Nabili</button>
+        <button class="btn btn-sm paylater-btn" data-id="${w.id}" title="Convert to PayLater" style="background:#3b82f618;color:#60a5fa;border:1px solid #3b82f630;gap:5px">${iconCard} PayLater</button>
         <button class="btn btn-icon btn-sm edit-want-btn" data-id="${w.id}" title="Edit">${iconEdit}</button>
         <button class="btn btn-icon btn-sm delete-want-btn" data-id="${w.id}" data-name="${escapeHtml(w.name)}" title="Delete" style="color:var(--danger)">${iconDel}</button>
       </div>
@@ -105,10 +108,53 @@ async function updateBuyWalletInfo() {
     ? `Available balance: ${formatMoney(wallet.balance)}` : '';
 }
 
+// PATCH: open the Want → PayLater conversion modal
+async function openWantToPayLaterModal(wantId) {
+  const want = _cachedWants.find(w => w.id === wantId);
+  if (!want) return;
+
+  document.getElementById('w2pl-want-id').value = wantId;
+
+  // Pre-fill name in modal title area
+  document.getElementById('w2pl-info').innerHTML = `
+    <div style="font-weight:700;font-size:0.95rem">${escapeHtml(want.name)}</div>
+    <div style="font-size:0.78rem;color:var(--text2);margin-top:2px">Total price: ${formatMoney(want.price)} — set your installment terms below.</div>
+    <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">This Want will stay in your list. A PayLater entry will be linked to it.</div>
+  `;
+
+  // Suggest a default monthly (price / 12)
+  const suggestedMonthly = want.price > 0 ? (want.price / 12).toFixed(2) : '';
+  document.getElementById('w2pl-monthly').value = suggestedMonthly;
+  document.getElementById('w2pl-months').value  = '12';
+
+  // Update preview immediately
+  _updateW2plPreview();
+
+  openModal('want-to-paylater-modal');
+  setTimeout(() => document.getElementById('w2pl-monthly').focus(), 120);
+}
+
+function _updateW2plPreview() {
+  const mo  = parseFloat(document.getElementById('w2pl-monthly').value) || 0;
+  const mos = parseInt(document.getElementById('w2pl-months').value) || 0;
+  const el  = document.getElementById('w2pl-preview');
+  if (el) el.innerHTML = mo > 0 && mos > 0
+    ? `Total: <strong>${formatMoney(mo * mos)}</strong> &bull; Weekly: ${formatMoney(mo / 4)}`
+    : '';
+}
+
 // ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   setupModalClose('edit-want-modal');
   setupModalClose('buy-modal');
+  // PATCH: setup close for new modal
+  setupModalClose('want-to-paylater-modal');
+
+  // PATCH: live preview in Want→PayLater modal
+  ['w2pl-monthly', 'w2pl-months'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', _updateW2plPreview);
+  });
 
   document.getElementById('add-want-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -127,11 +173,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('wants-list').addEventListener('click', async e => {
-    const buyBtn  = e.target.closest('.buy-btn');
-    const editBtn = e.target.closest('.edit-want-btn');
-    const delBtn  = e.target.closest('.delete-want-btn');
+    const buyBtn      = e.target.closest('.buy-btn');
+    const editBtn     = e.target.closest('.edit-want-btn');
+    const delBtn      = e.target.closest('.delete-want-btn');
+    // PATCH: PayLater convert button
+    const plBtn       = e.target.closest('.paylater-btn');
 
     if (buyBtn)  await openBuyModal(buyBtn.dataset.id);
+
+    // PATCH: open PayLater conversion modal
+    if (plBtn)   await openWantToPayLaterModal(plBtn.dataset.id);
 
     if (editBtn) {
       const want = _cachedWants.find(w => w.id === editBtn.dataset.id);
@@ -199,6 +250,30 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Want updated!', 'success');
     closeModal('edit-want-modal');
     await renderWants();
+  });
+
+  // PATCH: Want → PayLater form submit
+  document.getElementById('want-to-paylater-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const wantId   = document.getElementById('w2pl-want-id').value;
+    const monthly  = parseFloat(document.getElementById('w2pl-monthly').value);
+    const months   = parseInt(document.getElementById('w2pl-months').value);
+    const want     = _cachedWants.find(w => w.id === wantId);
+
+    if (!want)                     { showToast('Want not found', 'error'); return; }
+    if (!monthly || monthly <= 0)  { showToast('Enter a valid monthly amount', 'error'); return; }
+    if (!months  || months  <= 0)  { showToast('Enter valid number of months', 'error'); return; }
+
+    await addInstallment({
+      name:          want.name,
+      monthlyAmount: monthly,
+      months:        months,
+      wantId:        wantId   // ← links PayLater to the Want
+    });
+
+    showToast(`PayLater created for "${want.name}" 💳 — Want stays in your list.`, 'success');
+    closeModal('want-to-paylater-modal');
+    // Want intentionally NOT removed — it stays in Wants list as required
   });
 });
 

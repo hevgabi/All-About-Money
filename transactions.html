@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Transactions — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="css/patch.css"/>
 </head>
 <body>
 <div class="app-layout">
@@ -37,8 +38,15 @@
               <input type="date" class="form-control" id="tx-date"/>
             </div>
             <div class="form-group">
-              <label class="form-label">Wallet</label>
+              <label class="form-label" id="tx-wallet-label">Wallet</label>
               <select class="form-control" id="tx-wallet"></select>
+            </div>
+          </div>
+          <!-- Transfer: destination wallet row (shown only when type=transfer) -->
+          <div class="form-row" id="tx-transfer-row">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">To Wallet</label>
+              <select class="form-control" id="tx-to-wallet"></select>
             </div>
           </div>
           <div class="form-row">
@@ -51,12 +59,13 @@
               <div class="type-toggle">
                 <button type="button" class="active-expense" id="tx-expense-btn" onclick="setTxType('expense')">Expense</button>
                 <button type="button" id="tx-income-btn" onclick="setTxType('income')">Income</button>
+                <button type="button" id="tx-transfer-btn" onclick="setTxType('transfer')">Transfer</button>
               </div>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Saan Ginastos / Description</label>
-            <input type="text" class="form-control" id="tx-place" placeholder="e.g. Jollibee, Grocery, Salary..."/>
+            <label class="form-label">Saan Ginastos / Description (optional for transfers)</label>
+            <input type="text" class="form-control" id="tx-place" placeholder="e.g. Jollibee, Grocery, Salary, Moving funds..."/>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Transaction</button>
@@ -122,8 +131,15 @@
           <input type="date" class="form-control" id="edit-tx-date"/>
         </div>
         <div class="form-group">
-          <label class="form-label">Wallet</label>
+          <label class="form-label" id="edit-tx-wallet-label">Wallet</label>
           <select class="form-control" id="edit-tx-wallet"></select>
+        </div>
+      </div>
+      <!-- Transfer: destination wallet row (shown only when type=transfer) -->
+      <div class="form-row" id="edit-tx-transfer-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">To Wallet</label>
+          <select class="form-control" id="edit-tx-to-wallet"></select>
         </div>
       </div>
       <div class="form-row">
@@ -136,6 +152,7 @@
           <div class="type-toggle">
             <button type="button" id="edit-expense-btn" onclick="setEditTxType('expense')">Expense</button>
             <button type="button" id="edit-income-btn" onclick="setEditTxType('income')">Income</button>
+            <button type="button" id="edit-transfer-btn" onclick="setEditTxType('transfer')">Transfer</button>
           </div>
         </div>
       </div>
