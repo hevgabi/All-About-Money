@@ -28,6 +28,15 @@
       <div class="page-sub">Track things you want to buy, sorted by priority</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Wants</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> Track things you want to buy in the future — a wishlist with prices and priorities.</p>
+          <p><strong>How to use it:</strong> Add items you want with their estimated cost and priority level. Mark them as bought once you purchase them.</p>
+          <p><strong>Actions you can take:</strong> Add wants, set priority, convert wants to PayLater installments, mark as bought, or delete items.</p>
+        </div>
+      </details>
       <div class="card" style="margin-bottom:24px;">
         <div class="section-title">Add a Want</div>
         <form id="add-want-form">
@@ -185,11 +194,11 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/wants.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/wants.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

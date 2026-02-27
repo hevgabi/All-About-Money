@@ -306,7 +306,7 @@ async function getInstallments() {
 }
 
 // PATCH: accepts optional wantId. If no wantId provided, auto-creates a Want entry and links it.
-async function addInstallment({ name, monthlyAmount, months, wantId }) {
+async function addInstallment({ name, monthlyAmount, months, wantId, weeklyStartDate }) {
   const id = uid();
   monthlyAmount = Number(monthlyAmount);
   months = Number(months);
@@ -330,7 +330,8 @@ async function addInstallment({ name, monthlyAmount, months, wantId }) {
   const item = {
     name: name.trim(), monthlyAmount, months, total, weeklySuggested,
     paidAmount: 0, createdAt: now(),
-    wantId: resolvedWantId   // ← link to Want
+    wantId: resolvedWantId,   // ← link to Want
+    weeklyStartDate: weeklyStartDate || null  // FEATURE: weekly start date
   };
   await _getApi().setDoc(_doc('installments', id), item);
   return { id, ...item };
@@ -373,6 +374,11 @@ async function payInstallment(instId, amount, walletId) {
 
   await batch.commit();
   return { inst, amount, completed };
+}
+
+
+async function updateInstallmentStartDate(instId, weeklyStartDate) {
+  await _getApi().updateDoc(_doc('installments', instId), { weeklyStartDate: weeklyStartDate || null });
 }
 
 async function deleteInstallment(id) {

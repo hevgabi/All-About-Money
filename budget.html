@@ -28,6 +28,16 @@
       <div class="page-sub">Plan your weekly and monthly budget</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Budget Builder</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> Plan your weekly and monthly budgets, and track PayLater / installment payments.</p>
+          <p><strong>Weekly tab:</strong> Set your weekly allowance and fixed weekly expenses (e.g. transport, load).</p>
+          <p><strong>Monthly tab:</strong> List fixed monthly bills like subscriptions or rent.</p>
+          <p><strong>PayLater tab:</strong> Track Shopee/TikTok PayLater or any installment. Set a Weekly Start Date to auto-track which week you're on.</p>
+        </div>
+      </details>
       <div class="tabs">
         <button class="tab-btn active" id="tab-weekly" onclick="switchBudgetTab('weekly')">Weekly</button>
         <button class="tab-btn" id="tab-monthly" onclick="switchBudgetTab('monthly')">Monthly</button>
@@ -129,6 +139,11 @@
           </div>
         </div>
         <div id="inst-total-preview" style="font-size:0.8rem;color:var(--accent);margin-bottom:16px;min-height:1.2em"></div>
+        <!-- FEATURE: Weekly Start Date -->
+        <div class="form-group">
+          <label class="form-label">Weekly Start Date <span style="color:var(--text3);font-weight:400;font-size:0.78rem">(optional — for weekly cycle tracking)</span></label>
+          <input type="date" class="form-control" id="inst-weekly-start" style="max-width:220px"/>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="closeModal('inst-add-modal')">Cancel</button>
           <button type="submit" class="btn btn-primary">Add Installment</button>
@@ -164,6 +179,7 @@
     </div>
   </div>
 
+
   <!-- Bottom Nav (Mobile) -->
   <nav class="bottom-nav">
     <a href="index.html" class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Home</span></a>
@@ -176,13 +192,13 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/budget.js"></script>
-<script src="js/installments.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/budget.js" defer></script>
+<script src="js/installments.js" defer></script>
+<script src="js/auth.js" defer></script>
 <!-- PATCH: Removed the broken inline fallback script that was causing double form binding on #add-inst-form.
      installments.js now handles all binding and sets form.__bound = true to prevent any stray rebind. -->
 </body>

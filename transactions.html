@@ -28,6 +28,15 @@
       <div class="page-sub">Daily expense &amp; income log</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Transactions</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> Log your daily income and expenses to keep an accurate record of your money flow.</p>
+          <p><strong>How to use it:</strong> Select the transaction type (Income or Expense), choose a wallet, enter the amount and where it was spent or earned, then submit.</p>
+          <p><strong>Actions you can take:</strong> Add new transactions, filter or view past records, and delete incorrect entries.</p>
+        </div>
+      </details>
       <!-- Add transaction -->
       <div class="card" style="margin-bottom:24px;">
         <div class="section-title">Add Transaction</div>
@@ -42,13 +51,6 @@
               <select class="form-control" id="tx-wallet"></select>
             </div>
           </div>
-          <!-- Transfer: destination wallet row (shown only when type=transfer) -->
-          <div class="form-row" id="tx-transfer-row">
-            <div class="form-group" style="flex:1">
-              <label class="form-label">To Wallet</label>
-              <select class="form-control" id="tx-to-wallet"></select>
-            </div>
-          </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Amount</label>
@@ -59,12 +61,12 @@
               <div class="type-toggle">
                 <button type="button" class="active-expense" id="tx-expense-btn" onclick="setTxType('expense')">Expense</button>
                 <button type="button" id="tx-income-btn" onclick="setTxType('income')">Income</button>
-                <button type="button" id="tx-transfer-btn" onclick="setTxType('transfer')">Transfer</button>
+                
               </div>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Saan Ginastos / Description (optional for transfers)</label>
+            <label class="form-label">Saan Ginastos / Description</label>
             <input type="text" class="form-control" id="tx-place" placeholder="e.g. Jollibee, Grocery, Salary, Moving funds..."/>
           </div>
           <div class="form-actions">
@@ -135,13 +137,6 @@
           <select class="form-control" id="edit-tx-wallet"></select>
         </div>
       </div>
-      <!-- Transfer: destination wallet row (shown only when type=transfer) -->
-      <div class="form-row" id="edit-tx-transfer-row">
-        <div class="form-group" style="flex:1">
-          <label class="form-label">To Wallet</label>
-          <select class="form-control" id="edit-tx-to-wallet"></select>
-        </div>
-      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Amount</label>
@@ -152,7 +147,7 @@
           <div class="type-toggle">
             <button type="button" id="edit-expense-btn" onclick="setEditTxType('expense')">Expense</button>
             <button type="button" id="edit-income-btn" onclick="setEditTxType('income')">Income</button>
-            <button type="button" id="edit-transfer-btn" onclick="setEditTxType('transfer')">Transfer</button>
+            
           </div>
         </div>
       </div>
@@ -169,11 +164,11 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/transactions.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/transactions.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

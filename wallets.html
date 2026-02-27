@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Wallets — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="css/patch.css"/>
 </head>
 <body>
 <div class="app-layout">
@@ -30,6 +31,15 @@
       <div class="page-sub">Manage your money accounts</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Wallets</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> Manage all your money accounts — cash, GCash, bank accounts, or any wallet you use.</p>
+          <p><strong>How to use it:</strong> Add a new wallet by filling in the name and current balance. All your wallets are listed below with their balances.</p>
+          <p><strong>Actions you can take:</strong> Add wallets, view balances, transfer money between wallets, and delete wallets you no longer need.</p>
+        </div>
+      </details>
       <!-- Add wallet card -->
       <div class="card" style="margin-bottom:24px;">
         <div class="section-title">Add New Wallet</div>
@@ -46,6 +56,39 @@
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Add Wallet</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Transfer Between Wallets -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="section-title">Transfer Between Wallets</div>
+        <form id="transfer-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">From Wallet</label>
+              <select class="form-control" id="transfer-from"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">To Wallet</label>
+              <select class="form-control" id="transfer-to"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount</label>
+              <input type="number" class="form-control" id="transfer-amount" placeholder="0.00" min="0.01" step="0.01"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Note (optional)</label>
+              <input type="text" class="form-control" id="transfer-note" placeholder="e.g. Allowance, Padala..."/>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Transfer
+            </button>
           </div>
         </form>
       </div>
@@ -94,11 +137,11 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/wallets.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/wallets.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

@@ -23,6 +23,13 @@ async function renderWallets() {
         </div>
       </div>
     `).join('');
+
+    // Populate transfer dropdowns using the same wallets — no extra fetch needed
+    const opts = wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+    const fromEl = document.getElementById('transfer-from');
+    const toEl   = document.getElementById('transfer-to');
+    if (fromEl) fromEl.innerHTML = opts;
+    if (toEl)   toEl.innerHTML   = opts;
   } catch (err) {
     console.error('[wallets] renderWallets error:', err);
     // ✅ Show the actual error so we can debug
@@ -37,6 +44,34 @@ async function renderWallets() {
 // ✅ Wire up form listeners on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   setupModalClose('edit-wallet-modal');
+
+  // ── Transfer Between Wallets ──
+  document.getElementById('transfer-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fromId  = document.getElementById('transfer-from').value;
+    const toId    = document.getElementById('transfer-to').value;
+    const amount  = parseFloat(document.getElementById('transfer-amount').value);
+    const note    = document.getElementById('transfer-note').value;
+
+    if (!fromId || !toId)       { showToast('Select both wallets', 'error'); return; }
+    if (fromId === toId)         { showToast('Source and destination must be different', 'error'); return; }
+    if (!amount || amount <= 0)  { showToast('Enter a valid amount', 'error'); return; }
+
+    const result = await addTransferTransaction({
+      dateISO: todayISO(),
+      fromWalletId: fromId,
+      toWalletId: toId,
+      amount,
+      note
+    });
+
+    if (result.error) { showToast(result.error, 'error'); return; }
+
+    showToast('Transfer completed!', 'success');
+    document.getElementById('transfer-amount').value = '';
+    document.getElementById('transfer-note').value   = '';
+    await renderWallets();
+  });
 
   document.getElementById('add-wallet-form').addEventListener('submit', async e => {
     e.preventDefault();

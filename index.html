@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Dashboard — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="css/patch.css"/>
 </head>
 <body>
 <div class="app-layout">
@@ -53,6 +54,15 @@
       <div class="page-sub">Your financial overview</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Dashboard</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> A quick overview of your total balance, recent transactions, and financial health at a glance.</p>
+          <p><strong>How to use it:</strong> Check your total balance across all wallets at the top. Scroll down to see your latest income, expenses, and spending summaries.</p>
+          <p><strong>Actions you can take:</strong> Navigate to other sections using the sidebar or bottom nav to manage wallets, log transactions, or review reports.</p>
+        </div>
+      </details>
       <!-- Hero total -->
       <div class="hero-card" id="hero-card">
         <div class="hero-label">Total Balance</div>
@@ -132,11 +142,11 @@
 
 <div id="toast-container"></div>
 
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/dashboard.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/dashboard.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

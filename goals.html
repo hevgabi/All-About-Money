@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Goals — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
-</head>
-<body>
-<div class="app-layout">
-  <aside class="sidebar">
+<link rel="stylesheet" href="css/patch.css"/>  <aside class="sidebar">
     <div class="sidebar-logo"><div class="logo-text">₱ PesoTracker</div><div class="logo-sub">Personal Finance</div></div>
     <nav class="sidebar-nav">
       <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="nav-label">Dashboard</span></a>
@@ -27,6 +24,15 @@
       <div class="page-sub">Mag-ipon para sa iyong mga pangarap</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Goals (Ipon)</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> Set savings goals — things you're working toward, like an emergency fund, travel, or a big purchase.</p>
+          <p><strong>How to use it:</strong> Create a goal with a name and target amount. Add contributions over time to track your progress.</p>
+          <p><strong>Actions you can take:</strong> Add goals, contribute savings, view progress toward each goal, and delete completed or cancelled goals.</p>
+        </div>
+      </details>
       <!-- Add goal -->
       <div class="card" style="margin-bottom:24px;">
         <div class="section-title">Create New Goal</div>
@@ -90,11 +96,11 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/goals.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/goals.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

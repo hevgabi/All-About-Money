@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Reports — Money Tracker</title>
 <link rel="stylesheet" href="css/styles.css"/>
-</head>
-<body>
-<div class="app-layout">
-  <aside class="sidebar">
+<link rel="stylesheet" href="css/patch.css"/>  <aside class="sidebar">
     <div class="sidebar-logo"><div class="logo-text">₱ PesoTracker</div><div class="logo-sub">Personal Finance</div></div>
     <nav class="sidebar-nav">
       <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="nav-label">Dashboard</span></a>
@@ -27,6 +24,15 @@
       <div class="page-sub">Weekly &amp; monthly financial summaries</div>
     </div>
     <div class="page-body">
+      <!-- Usage Guide -->
+      <details class="usage-guide">
+        <summary>📖 How to use Reports</summary>
+        <div class="usage-guide-body">
+          <p><strong>What this screen is for:</strong> View summaries of your income and expenses over weekly or monthly periods.</p>
+          <p><strong>How to use it:</strong> Switch between the Weekly and Monthly tabs to see different time ranges. Each report shows totals and breakdowns by category.</p>
+          <p><strong>Actions you can take:</strong> Review spending trends, identify your biggest expense categories, and use insights to plan your budget better.</p>
+        </div>
+      </details>
       <div class="tabs">
         <button class="tab-btn active" id="tab-weekly" onclick="switchTab('weekly')">Weekly</button>
         <button class="tab-btn" id="tab-monthly" onclick="switchTab('monthly')">Monthly</button>
@@ -75,11 +81,11 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="js/data.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/reports.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/utils.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/reports.js" defer></script>
+<script src="js/auth.js" defer></script>
 </body>
 </html>

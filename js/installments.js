@@ -1,5 +1,18 @@
 // js/installments.js — PayLater / Installment feature
 
+// ── Weekly Cycle Helper ───────────────────────────────────────
+// Returns the current week number (1-based) relative to a start date.
+// Returns null if no start date set.
+function _getCurrentWeekNum(weeklyStartDate) {
+  if (!weeklyStartDate) return null;
+  const start = new Date(weeklyStartDate + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return null; // start date is in the future
+  return Math.floor(diffDays / 7) + 1;
+}
+
 // ── Render ────────────────────────────────────────────────────
 async function renderInstallments() {
   const list = await getInstallments();
@@ -24,11 +37,23 @@ async function renderInstallments() {
     const done    = inst.paidAmount >= inst.total;
     const remain  = inst.total - inst.paidAmount;
 
+    // FEATURE: weekly cycle display (inline - no modal)
+    const weekNum = _getCurrentWeekNum(inst.weeklyStartDate);
+    const weekBadge = weekNum
+      ? `<div style="font-size:0.73rem;color:var(--accent);margin-top:6px;opacity:0.85">📅 Week ${weekNum} <span style="color:var(--text3)">(since ${inst.weeklyStartDate})</span></div>`
+      : ``;
+
     return `
     <div class="inst-card ${done ? 'done' : ''}" data-id="${inst.id}">
       ${done ? '<div class="inst-done-badge">✓ PAID</div>' : ''}
       <div class="inst-name">${escapeHtml(inst.name)}</div>
       <div class="inst-meta">${inst.months} months × ${formatMoney(inst.monthlyAmount)}/mo &bull; Total: ${formatMoney(inst.total)}</div>
+      ${weekBadge}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:2px">
+        <label style="font-size:0.73rem;color:var(--text3);white-space:nowrap">📅 Weekly start:</label>
+        <input type="date" class="inst-date-inline" data-id="${inst.id}" value="${inst.weeklyStartDate || ''}"
+          style="font-size:0.73rem;background:var(--bg3,#1a1a2e);color:var(--text1);border:1px solid var(--border2,#333);border-radius:6px;padding:3px 7px;cursor:pointer;max-width:160px"/>
+      </div>
       <div class="inst-amounts">
         <div>
           <div class="inst-amt-label">Paid</div>
@@ -117,11 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // PATCH: pass wantId if present (set by wants → PayLater flow)
       const wantId = addForm.dataset.wantId || undefined;
+      const weeklyStartEl = document.getElementById('inst-weekly-start');
+      const weeklyStartDate = weeklyStartEl ? weeklyStartEl.value || null : null;
       await addInstallment({
         name: nameEl.value,
         monthlyAmount: moAmt.value,
         months: mos.value || 1,
-        wantId
+        wantId,
+        weeklyStartDate
       });
       // Clean up wantId after use
       delete addForm.dataset.wantId;
@@ -129,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Installment added!', 'success');
       closeModal('inst-add-modal');
       addForm.reset();
+      const wsEl = document.getElementById('inst-weekly-start');
+      if (wsEl) wsEl.value = '';
       await renderInstallments();
     });
 
@@ -143,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Pay form
+    // Pay form
   const payForm = document.getElementById('inst-pay-form');
   if (payForm) {
     payForm.addEventListener('submit', async e => {
@@ -171,6 +201,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Event delegation on list
   const instList = document.getElementById('inst-list');
   if (instList) {
+    // Inline date change handler
+    instList.addEventListener('change', async e => {
+      const dateInput = e.target.closest('.inst-date-inline');
+      if (!dateInput) return;
+      const instId  = dateInput.dataset.id;
+      const dateVal = dateInput.value || null;
+      await updateInstallmentStartDate(instId, dateVal);
+      showToast(dateVal ? '📅 Weekly start date saved!' : 'Date cleared', 'success');
+      await renderInstallments();
+    });
+
     instList.addEventListener('click', async e => {
       const payBtn = e.target.closest('.inst-pay-btn');
       const delBtn = e.target.closest('.inst-del-btn');
